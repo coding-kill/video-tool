@@ -1,6 +1,6 @@
 
 <!DOCTYPE html>
-<html lang="zh-cmn-Hans">
+<html lang="zh-cmn-Hans" xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, shrink-to-fit=no"/>
@@ -84,38 +84,18 @@
         <div class="down mdui-text-center"></div>
     </div>
 </main>
-<script>
+<script th:inline="javascript">
+
+    var ctx = [[@{/}]];
+    var lockscreen = [[${session.lockscreen}]]; if(lockscreen){window.top.location=ctx+"lockscreen";}
+
     function  setValue(){
         var data =  document.getElementById("url").value;
         let regex = /http[s]?:\/\/[\w.]+[\w\/]*[\w.]*\??[\w=&:\-\+\%]*[/]*/;
         var v =  data.match(regex)[0];
-        console.log(v);
-
-        // var xmlhttp;
-        // if(window.XMLHttpRequest){
-        //     xmlhttp=new XMLHttpRequest();
-        // }
-        // else{// code for IE6, IE5
-        //     xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");}
-        // xmlhttp.open("GET","http://127.0.0.1:8080/video/getVideoInfo?url="+v,false);
-        // xmlhttp.send();
-        // var jsonObj = JSON.parse(xmlhttp.responseText);
-        // console.log(jsonObj);
-        // var code = jsonObj.data.url;
-        // if(code !== null){
-        //     mdui.snackbar({
-        //         message: '解析成功'
-        //     });
-        //     $(".down").html('<h4>'+jsonObj.data.title+' </h4><a class="mdui-btn mdui-btn-raised" href="'+jsonObj.data.cover+'" target="_blank" download="video">下载封面</a><a class="mdui-btn mdui-btn-raised" href="'+jsonObj.data.url+'" target="_blank" download="video">下载视频</a>');
-        //
-        // }else{
-        //     mdui.snackbar({
-        //         message: '解析失败,视频不存在或者链接不正确'
-        //     });}
-
 
         var config = {
-            url: "http://127.0.0.1:8080/video/getVideoInfo?url="+v,
+            url: ctx+"/video/getVideoInfo?url="+v,
             type: "get",
             dataType: "json",
             data: "",
