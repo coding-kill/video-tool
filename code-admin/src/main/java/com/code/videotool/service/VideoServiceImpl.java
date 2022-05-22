@@ -5,14 +5,24 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.code.util.RestTemplateUtil;
 import com.code.videotool.domain.VideoInfoDto;
+import org.apache.commons.collections4.Get;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
+import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.web.client.RequestCallback;
+import org.springframework.web.client.ResponseExtractor;
 import org.springframework.web.client.RestTemplate;
 
 import javax.annotation.Resource;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.Collections;
 import java.util.Date;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -41,10 +51,14 @@ public class VideoServiceImpl implements VideoService {
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.set("User-Agent", "Mozilla/5.0 (Linux; Android 5.0; SM-G900P Build/LRX21T) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Mobile Safari/537.36");
         httpHeaders.set("Referer", url);
-        VideoInfoDto videoInfoDto;
+        VideoInfoDto videoInfoDto = new VideoInfoDto();
         //抖音快手Java解析其余短视频平台Java版本暂时没时间写先用php
         if (url.contains("douyin")) {
-            videoInfoDto = parsingDyVideoInfo(url, httpHeaders);
+            try {
+                videoInfoDto = parsingDyVideoInfo(url, httpHeaders);
+            }catch (Exception e){
+                e.printStackTrace();
+            }
         } else if (url.contains("kuaishou")) {
             videoInfoDto = parsingKsuVideoInfo(url, httpHeaders);
         } else {
@@ -54,7 +68,7 @@ public class VideoServiceImpl implements VideoService {
     }
 
     @Override
-    public VideoInfoDto parsingDyVideoInfo(String url, HttpHeaders httpHeaders) {
+    public VideoInfoDto parsingDyVideoInfo(String url, HttpHeaders httpHeaders)throws Exception {
         VideoInfoDto videoInfoDto = new VideoInfoDto();
         //获取重定向后的地址
         url = restTemplate.headForHeaders(url).getLocation().toString();
@@ -73,10 +87,23 @@ public class VideoServiceImpl implements VideoService {
 
         videoInfoDto.setTime(videoInfo.getString("create_time"));
         videoInfoDto.setCover(videoInfo.getJSONObject("video").getJSONObject("origin_cover").getJSONArray("url_list").getString(0));
-        videoInfoDto.setUrl(videoInfo.getJSONObject("video").getJSONObject("play_addr").getJSONArray("url_list").getString(0).replace("playwm", "play"));
         videoInfoDto.setTitle(videoInfo.getString("desc"));
         videoInfoDto.setAuthor(videoInfo.getJSONObject("author").getString("nickname"));
         videoInfoDto.setAvatar(videoInfo.getJSONObject("author").getJSONObject("avatar_larger").getJSONArray("url_list").getString(0));
+
+        String alerturl = videoInfo.getJSONObject("video").getJSONObject("play_addr").getJSONArray("url_list").getString(0).replace("playwm", "play");
+
+        HttpURLConnection conn = (HttpURLConnection) new URL(alerturl).openConnection();
+        conn.setInstanceFollowRedirects(false);
+        conn.setConnectTimeout(5000);
+        conn.setRequestMethod("GET");
+        conn.setRequestProperty("User-agent", "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.67 Mobile Safari/537.36");
+        conn.setRequestProperty("authority", "aweme.snssdk.com");
+        conn.setRequestProperty("sec-ch-ua-platform", "Android");
+        conn.connect();
+        String location = conn.getHeaderField("Location");
+        videoInfoDto.setUrl(location);
+
         return videoInfoDto;
     }
 

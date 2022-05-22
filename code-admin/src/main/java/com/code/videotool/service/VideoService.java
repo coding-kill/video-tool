@@ -19,7 +19,7 @@ public interface VideoService {
      * @param url 分享链接
      * @return
      */
-    VideoInfoDto parsingDyVideoInfo(String url, HttpHeaders httpHeaders);
+    VideoInfoDto parsingDyVideoInfo(String url, HttpHeaders httpHeaders)throws Exception ;
 
     /**
      * 快手解析
