@@ -6,6 +6,8 @@ import java.io.InputStream;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import javax.servlet.Filter;
+
+import com.alibaba.fastjson.JSON;
 import org.apache.commons.io.IOUtils;
 import org.apache.shiro.cache.ehcache.EhCacheManager;
 import org.apache.shiro.codec.Base64;
@@ -128,6 +130,21 @@ public class ShiroConfig
      */
     @Value("${shiro.rememberMe.enabled: false}")
     private boolean rememberMe;
+
+    @Value("${shiro.filterChain.anon}")
+    private String anon;
+    @Value("${shiro.filterChain.authc}")
+    private String authc;
+    @Value("${shiro.filterChain.logout}")
+    private String logout;
+    @Value("${shiro.filterChain.authcBasic}")
+    private String authcBasic;
+    @Value("${shiro.filterChain.ssl}")
+    private String ssl;
+    @Value("${shiro.filterChain.user}")
+    private String user;
+    @Value("${shiro.filterChain.multiple}")
+    private String multiple;
 
     /**
      * 缓存管理器 使用Ehcache实现
@@ -275,42 +292,47 @@ public class ShiroConfig
         shiroFilterFactoryBean.setUnauthorizedUrl(unauthorizedUrl);
         // Shiro连接约束配置，即过滤链的定义
         LinkedHashMap<String, String> filterChainDefinitionMap = new LinkedHashMap<>();
-        // 对静态资源设置匿名访问
-        filterChainDefinitionMap.put("/favicon.ico**", "anon");
-        filterChainDefinitionMap.put("/ruoyi.png**", "anon");
-        filterChainDefinitionMap.put("/html/**", "anon");
-        filterChainDefinitionMap.put("/css/**", "anon");
-        filterChainDefinitionMap.put("/docs/**", "anon");
-        filterChainDefinitionMap.put("/fonts/**", "anon");
-        filterChainDefinitionMap.put("/img/**", "anon");
-        filterChainDefinitionMap.put("/ajax/**", "anon");
-        filterChainDefinitionMap.put("/js/**", "anon");
-        filterChainDefinitionMap.put("/ruoyi/**", "anon");
-        filterChainDefinitionMap.put("/captcha/captchaImage**", "anon");
-        filterChainDefinitionMap.put("/video/**", "anon");
-        // 退出 logout地址，shiro去清除session
-        filterChainDefinitionMap.put("/logout", "logout");
-        // 不需要拦截的访问
-        filterChainDefinitionMap.put("/login", "anon,captchaValidate");
-        // 注册相关
-//        filterChainDefinitionMap.put("/register", "anon,captchaValidate");
-        // 系统权限列表
-        // filterChainDefinitionMap.putAll(SpringUtils.getBean(IMenuService.class).selectPermsAll());
-
-        Map<String, Filter> filters = new LinkedHashMap<String, Filter>();
+        Map<String, Filter> filters = new LinkedHashMap<>();
         filters.put("onlineSession", onlineSessionFilter());
         filters.put("syncOnlineSession", syncOnlineSessionFilter());
         filters.put("captchaValidate", captchaValidateFilter());
-        filters.put("kickout", kickoutSessionFilter());
         // 注销成功，则跳转到指定页面
         filters.put("logout", logoutFilter());
         shiroFilterFactoryBean.setFilters(filters);
 
         // 所有请求需要认证
-        filterChainDefinitionMap.put("/**", "user,kickout,onlineSession,syncOnlineSession");
+        dealFilterChain(filterChainDefinitionMap);
         shiroFilterFactoryBean.setFilterChainDefinitionMap(filterChainDefinitionMap);
 
         return shiroFilterFactoryBean;
+    }
+
+    private void dealFilterChain(LinkedHashMap<String, String> map){
+        toDoChain(map, anon, "anon");
+        toDoChain(map, authc, "authc");
+        toDoChain(map, logout, "logout");
+        toDoChain(map, authcBasic, "authcBasic");
+        toDoChain(map, ssl, "ssl");
+        toDoChain(map, user, "user");
+        toDoChainMap(map, multiple);
+    }
+    private void toDoChain(LinkedHashMap<String, String> map, String param, String value){
+        if (StringUtils.isNotEmpty(param)) {
+            String[] paramArr = param.split(",");
+            for (int i = 0; paramArr != null && i < paramArr.length; i++) {
+                map.put(paramArr[i],value);
+            }
+        }
+    }
+    private void toDoChainMap(LinkedHashMap<String, String> map,String param){
+        if (StringUtils.isNotEmpty(param)) {
+            Map mapType = JSON.parseObject(param, Map.class);
+            for (Object obj : mapType.keySet()){
+                if (null != obj && null != mapType.get(obj)) {
+                    map.put((String)obj, (String)mapType.get(obj));
+                }
+            }
+        }
     }
 
     /**

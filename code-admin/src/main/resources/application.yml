@@ -126,6 +126,14 @@ shiro:
   rememberMe:
     # 是否开启记住我
     enabled: true
+  filterChain:
+    anon: /favicon.ico**,/ruoyi.png**,/css/**,/docs/**,/fonts/**,/img/**,/ajax/**,/js/**,/ruoyi/**,/druid/**,/video/**,/captcha/captchaImage**,/http/**,/mytool/**
+    logout: /logout
+    authc:
+    authcBasic:
+    ssl:
+    user:
+    multiple: "{'/login': 'anon,captchaValidate','/**': 'user,onlineSession,syncOnlineSession'}"
 
 # 防止XSS攻击
 xss: 
