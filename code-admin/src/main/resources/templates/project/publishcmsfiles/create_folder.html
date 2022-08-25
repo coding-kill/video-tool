@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org" >
+<head>
+	<th:block th:include="include :: header('创建文件夹')" />
+	<th:block th:include="include :: select2-css"/>
+</head>
+<body class="white-bg">
+    <div class="wrapper wrapper-content animated fadeInRight ibox-content">
+        <form class="form-horizontal m" id="form-question-editKps" >
+            <input id="path" name="path" th:value="${path}"  type="hidden">
+            <input id="platform" name="platform" th:value="${platform}"  type="hidden">
+			<div class="form-group">
+				<label class="col-sm-3 control-label">文件夹名称：</label>
+				<div class="col-sm-8">
+					<div class="input-group">
+						<input id="name" name="name" class="form-control" type="text">
+					</div>
+				</div>
+			</div>
+		</form>
+    </div>
+    <div th:include="include::footer"></div>
+	<th:block th:include="include :: select2-js"/>
+    <script type="text/javascript">
+		var prefix = ctx + "project/publishCmsFiles";
+		$("#form-question-edit").validate({
+			rules:{
+                name:{
+					required:true,
+				},
+			},
+			focusCleanup: true
+		});
+		
+		function submitHandler() {
+	        if ($.validate.form()) {
+                var formData = {"path":encodeURIComponent(encodeURIComponent($("#path").val())),"name":$("#name").val(),"platform":$("#platform").val()};
+	            $.operate.save(prefix + "/createFolder", formData,function () {
+                    var parent = window.parent;
+                    parent.refreshMyTree($("#path").val());
+                });
+	        }
+	    }
+	</script>
+</body>
+</html>

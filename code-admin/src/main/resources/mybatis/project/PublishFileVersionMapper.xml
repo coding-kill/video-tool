@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.code.filemanageweb.publishfileversion.mapper.PublishFileVersionMapper">
+    
+    <resultMap type="PublishFileVersion" id="PublishFileVersionResult">
+        <result property="id"    column="id"    />
+        <result property="platform"    column="platform"    />
+        <result property="jobId"    column="job_id"    />
+        <result property="path"    column="path"    />
+        <result property="name"    column="name"    />
+        <result property="bakPathPrefix"    column="bak_path_prefix"    />
+        <result property="bakName"    column="bak_name"    />
+        <result property="obfuscateSourceName"    column="obfuscate_source_name"    />
+        <result property="obfuscateFlag"    column="obfuscate_flag"    />
+        <result property="type"    column="type"    />
+        <result property="size"    column="size"    />
+        <result property="delFlag"    column="del_flag"    />
+        <result property="versionNum"    column="version_num"    />
+        <result property="isValid"    column="is_valid"    />
+        <result property="createDate"    column="create_date"    />
+        <result property="createUser"    column="create_user"    />
+        <result property="updateDate"    column="update_date"    />
+        <result property="updateUser"    column="update_user"    />
+        <result property="remark"    column="remark"    />
+    </resultMap>
+	
+	<sql id="selectPublishFileVersionVo">
+        select id, platform, job_id, path, name, bak_path_prefix, bak_name,obfuscate_source_name,obfuscate_flag, type, size, del_flag, version_num, is_valid, create_date, create_user, update_date, update_user,remark from ei_publish_file_version
+    </sql>
+	
+    <select id="selectPublishFileVersionList" parameterType="PublishFileVersion" resultMap="PublishFileVersionResult">
+        <include refid="selectPublishFileVersionVo"/>
+        <where>  
+            <if test="id != null "> and id = #{id}</if>
+             <if test="platform != null "> and platform = #{platform}</if>
+             <if test="jobId != null "> and job_id = #{jobId}</if>
+             <if test="path != null  and path != '' "> and path = #{path}</if>
+             <if test="name != null  and name != '' "> and name = #{name}</if>
+             <if test="bakPathPrefix != null  and bakPathPrefix != '' "> and bak_path_prefix = #{bakPathPrefix}</if>
+             <if test="bakName != null  and bakName != '' "> and bak_name = #{bakName}</if>
+             <if test="obfuscateSourceName != null  and obfuscateSourceName != '' "> and obfuscate_source_name = #{obfuscateSourceName}</if>
+            <if test="obfuscateFlag != null "> and obfuscate_flag = #{obfuscateFlag}</if>
+            <if test="type != null  and type != '' "> and type = #{type}</if>
+            <if test="size != null "> and size = #{size}</if>
+            <if test="delFlag != null "> and del_flag = #{delFlag}</if>
+             <if test="versionNum != null "> and version_num = #{versionNum}</if>
+             <if test="isValid != null "> and is_valid = #{isValid}</if>
+             <if test="createDate != null "> and create_date = #{createDate}</if>
+             <if test="createUser != null  "> and create_user = #{createUser}</if>
+             <if test="updateDate != null "> and update_date = #{updateDate}</if>
+             <if test="updateUser != null  "> and update_user = #{updateUser}</if>
+             <if test="remark != null and remark != '' "> and remark = #{remark}</if>
+            AND is_valid=1
+         </where>
+    </select>
+    
+    <select id="selectPublishFileVersionById" parameterType="Long" resultMap="PublishFileVersionResult">
+        <include refid="selectPublishFileVersionVo"/>
+        where id = #{id} AND is_valid=1
+    </select>
+
+    <insert id="insertPublishFileVersion" parameterType="PublishFileVersion" useGeneratedKeys="true" keyProperty="id">
+        insert into ei_publish_file_version
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="platform != null  ">platform,</if>
+			<if test="jobId != null  ">job_id,</if>
+			<if test="path != null  and path != ''  ">path,</if>
+			<if test="name != null  and name != ''  ">name,</if>
+			<if test="bakPathPrefix != null  and bakPathPrefix != ''  ">bak_path_prefix,</if>
+			<if test="bakName != null  and bakName != ''  ">bak_name,</if>
+            <if test="obfuscateSourceName != null  and obfuscateSourceName != '' "> obfuscate_source_name,</if>
+            <if test="obfuscateFlag != null "> obfuscate_flag,</if>
+            <if test="type != null  and type != ''  ">type,</if>
+			<if test="size != null  ">size,</if>
+			<if test="delFlag != null  ">del_flag,</if>
+			<if test="versionNum != null  ">version_num,</if>
+			<if test="isValid != null  ">is_valid,</if>
+			<if test="createDate != null  ">create_date,</if>
+			<if test="createUser != null  ">create_user,</if>
+			<if test="updateDate != null  ">update_date,</if>
+			<if test="updateUser != null  ">update_user,</if>
+			<if test="remark != null  ">remark,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="platform != null  ">#{platform},</if>
+			<if test="jobId != null  ">#{jobId},</if>
+			<if test="path != null  and path != ''  ">#{path},</if>
+			<if test="name != null  and name != ''  ">#{name},</if>
+			<if test="bakPathPrefix != null  and bakPathPrefix != ''  ">#{bakPathPrefix},</if>
+			<if test="bakName != null  and bakName != ''  ">#{bakName},</if>
+            <if test="obfuscateSourceName != null  and obfuscateSourceName != '' "> #{obfuscateSourceName},</if>
+            <if test="obfuscateFlag != null ">#{obfuscateFlag},</if>
+            <if test="type != null  and type != ''  ">#{type},</if>
+			<if test="size != null  ">#{size},</if>
+			<if test="delFlag != null  ">#{delFlag},</if>
+			<if test="versionNum != null  ">#{versionNum},</if>
+			<if test="isValid != null  ">#{isValid},</if>
+			<if test="createDate != null  ">#{createDate},</if>
+			<if test="createUser != null  ">#{createUser},</if>
+			<if test="updateDate != null  ">#{updateDate},</if>
+			<if test="updateUser != null  ">#{updateUser},</if>
+			<if test="remark != null  ">#{remark},</if>
+         </trim>
+    </insert>
+	 
+    <update id="updatePublishFileVersion" parameterType="PublishFileVersion">
+        update ei_publish_file_version
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="platform != null  ">platform = #{platform},</if>
+            <if test="jobId != null  ">job_id = #{jobId},</if>
+            <if test="path != null  and path != ''  ">path = #{path},</if>
+            <if test="name != null  and name != ''  ">name = #{name},</if>
+            <if test="bakPathPrefix != null  and bakPathPrefix != ''  ">bak_path_prefix = #{bakPathPrefix},</if>
+            <if test="bakName != null  and bakName != ''  ">bak_name = #{bakName},</if>
+            <if test="obfuscateSourceName != null  and obfuscateSourceName != '' "> obfuscate_source_name = #{obfuscateSourceName},</if>
+            <if test="obfuscateFlag != null "> obfuscate_flag = #{obfuscateFlag},</if>
+            <if test="type != null  and type != ''  ">type = #{type},</if>
+            <if test="size != null  ">size = #{size},</if>
+            <if test="delFlag != null  ">del_flag = #{delFlag},</if>
+            <if test="versionNum != null  ">version_num = #{versionNum},</if>
+            <if test="isValid != null  ">is_valid = #{isValid},</if>
+            <if test="createDate != null  ">create_date = #{createDate},</if>
+            <if test="createUser != null  ">create_user = #{createUser},</if>
+            <if test="updateDate != null  ">update_date = #{updateDate},</if>
+            <if test="updateUser != null  ">update_user = #{updateUser},</if>
+            <if test="remark != null  ">remark = #{remark},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <update id="deletePublishFileVersionById" parameterType="Long">
+        UPDATE ei_publish_file_version SET is_valid = 0 where id = #{id}
+    </update>
+
+    <update id="deletePublishFileVersionByIds" parameterType="String">
+        UPDATE ei_publish_file_version SET is_valid = 0 where id in
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+
+    <select id="selectCmsFileVersionList" resultMap="PublishFileVersionResult">
+        SELECT *
+        FROM
+        (
+            <include refid="selectPublishFileVersionVo"/>
+            <where>
+                <if test="id != null "> and id = #{id}</if>
+                <if test="platform != null "> and platform = #{platform}</if>
+                <if test="jobId != null "> and job_id = #{jobId}</if>
+                <if test="path != null  and path != '' "> and path = #{path}</if>
+                <if test="name != null  and name != '' "> and name like concat('%', #{name}, '%') </if>
+                <if test="bakPathPrefix != null  and bakPathPrefix != '' "> and bak_path_prefix = #{bakPathPrefix}</if>
+                <if test="bakName != null  and bakName != '' "> and bak_name = #{bakName}</if>
+                <if test="obfuscateSourceName != null  and obfuscateSourceName != '' "> and obfuscate_source_name = #{obfuscateSourceName}</if>
+                <if test="obfuscateFlag != null "> and obfuscate_flag = #{obfuscateFlag}</if>
+                <if test="type != null  and type != '' "> and type = #{type}</if>
+                <if test="size != null "> and size = #{size}</if>
+                <if test="delFlag != null "> and del_flag = #{delFlag}</if>
+                <if test="versionNum != null "> and version_num = #{versionNum}</if>
+                <if test="isValid != null "> and is_valid = #{isValid}</if>
+                <if test="createDate != null "> and create_date = #{createDate}</if>
+                <if test="createUser != null  "> and create_user = #{createUser}</if>
+                <if test="updateDate != null "> and update_date = #{updateDate}</if>
+                <if test="updateUser != null  "> and update_user = #{updateUser}</if>
+                <if test="remark != null and remark != '' "> and remark like concat('%', #{remark}, '%') </if>
+                <if test="createStartDate != null ">
+                    <![CDATA[ and create_date >= #{createStartDate} ]]>
+                </if>
+                <if test="createEndDate != null ">
+                    <![CDATA[ and create_date <= #{createEndDate} ]]>
+                </if>
+                AND is_valid=1
+            </where>
+            order by id desc
+        ) temp_table
+        GROUP BY temp_table.name
+
+    </select>
+    <select id="getOneFileHistory" resultMap="PublishFileVersionResult">
+        <include refid="selectPublishFileVersionVo"/>
+        <where>
+             and platform = #{platform}
+             and path = #{path}
+             and name = #{name}
+            AND is_valid=1
+        </where>
+        order by id desc
+    </select>
+
+    <select id="getLastFileVersion" resultType="String" resultMap="PublishFileVersionResult">
+        <include refid="selectPublishFileVersionVo"/>
+        <where>
+            and platform = #{platform}
+            and path = #{path}
+            and name = #{name}
+            AND is_valid=1
+        </where>
+        order by id desc limit 1
+    </select>
+</mapper>

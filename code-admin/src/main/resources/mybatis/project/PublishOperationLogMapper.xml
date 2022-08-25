@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.code.filemanageweb.publishoperationlog.mapper.PublishOperationLogMapper">
+    
+    <resultMap type="PublishOperationLog" id="PublishOperationLogResult">
+        <result property="id"    column="id"    />
+        <result property="platform"    column="platform"    />
+        <result property="operationType"    column="operation_type"    />
+        <result property="jobId"    column="job_id"    />
+        <result property="detailId"    column="detail_id"    />
+        <result property="logName"    column="log_name"    />
+        <result property="path"    column="path"    />
+        <result property="fileName"    column="file_name"    />
+        <result property="isValid"    column="is_valid"    />
+        <result property="createDate"    column="create_date"    />
+        <result property="createUser"    column="create_user"    />
+        <result property="updateDate"    column="update_date"    />
+        <result property="updateUser"    column="update_user"    />
+    </resultMap>
+	
+	<sql id="selectPublishOperationLogVo">
+        select id, platform, operation_type, job_id, detail_id, log_name, path, file_name, is_valid, create_date, create_user, update_date, update_user from ei_publish_operation_log
+    </sql>
+	
+    <select id="selectPublishOperationLogList" parameterType="PublishOperationLog" resultMap="PublishOperationLogResult">
+        <include refid="selectPublishOperationLogVo"/>
+        <where>
+            is_valid=1
+            <if test="id != null "> and id = #{id}</if>
+             <if test="platform != null "> and platform = #{platform}</if>
+             <if test="operationType != null "> and operation_type = #{operationType}</if>
+             <if test="jobId != null "> and job_id = #{jobId}</if>
+             <if test="detailId != null "> and detail_id = #{detailId}</if>
+             <if test="logName != null  and logName != '' "> and log_name = #{logName}</if>
+             <if test="path != null  and path != '' "> and path = #{path}</if>
+             <if test="fileName != null  and fileName != '' "> and file_name = #{fileName}</if>
+             <if test="isValid != null "> and is_valid = #{isValid}</if>
+             <if test="createDate != null "> and create_date = #{createDate}</if>
+             <if test="createUser != null  "> and create_user = #{createUser}</if>
+             <if test="updateDate != null "> and update_date = #{updateDate}</if>
+             <if test="updateUser != null "> and update_user = #{updateUser}</if>
+            <if test="createStartDate != null ">
+                <![CDATA[ and create_date >= #{createStartDate} ]]>
+            </if>
+            <if test="createEndDate != null ">
+                <![CDATA[ and create_date <= #{createEndDate} ]]>
+            </if>
+         </where>
+    </select>
+    
+    <select id="selectPublishOperationLogById" parameterType="Long" resultMap="PublishOperationLogResult">
+        <include refid="selectPublishOperationLogVo"/>
+        where id = #{id} AND is_valid=1
+    </select>
+        
+    <insert id="insertPublishOperationLog" parameterType="PublishOperationLog" useGeneratedKeys="true" keyProperty="id">
+        insert into ei_publish_operation_log
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="platform != null  ">platform,</if>
+			<if test="operationType != null  ">operation_type,</if>
+			<if test="jobId != null  ">job_id,</if>
+			<if test="detailId != null  ">detail_id,</if>
+			<if test="logName != null  and logName != ''  ">log_name,</if>
+			<if test="path != null  and path != ''  ">path,</if>
+			<if test="fileName != null  and fileName != ''  ">file_name,</if>
+			<if test="isValid != null  ">is_valid,</if>
+			<if test="createDate != null  ">create_date,</if>
+			<if test="createUser != null  ">create_user,</if>
+			<if test="updateDate != null  ">update_date,</if>
+			<if test="updateUser != null  ">update_user,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="platform != null  ">#{platform},</if>
+			<if test="operationType != null  ">#{operationType},</if>
+			<if test="jobId != null  ">#{jobId},</if>
+			<if test="detailId != null  ">#{detailId},</if>
+			<if test="logName != null  and logName != ''  ">#{logName},</if>
+			<if test="path != null  and path != ''  ">#{path},</if>
+			<if test="fileName != null  and fileName != ''  ">#{fileName},</if>
+			<if test="isValid != null  ">#{isValid},</if>
+			<if test="createDate != null  ">#{createDate},</if>
+			<if test="createUser != null  ">#{createUser},</if>
+			<if test="updateDate != null  ">#{updateDate},</if>
+			<if test="updateUser != null  ">#{updateUser},</if>
+         </trim>
+    </insert>
+	 
+    <update id="updatePublishOperationLog" parameterType="PublishOperationLog">
+        update ei_publish_operation_log
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="platform != null  ">platform = #{platform},</if>
+            <if test="operationType != null  ">operation_type = #{operationType},</if>
+            <if test="jobId != null  ">job_id = #{jobId},</if>
+            <if test="detailId != null  ">detail_id = #{detailId},</if>
+            <if test="logName != null  and logName != ''  ">log_name = #{logName},</if>
+            <if test="path != null  and path != ''  ">path = #{path},</if>
+            <if test="fileName != null  and fileName != ''  ">file_name = #{fileName},</if>
+            <if test="isValid != null  ">is_valid = #{isValid},</if>
+            <if test="createDate != null  ">create_date = #{createDate},</if>
+            <if test="createUser != null  ">create_user = #{createUser},</if>
+            <if test="updateDate != null  ">update_date = #{updateDate},</if>
+            <if test="updateUser != null  ">update_user = #{updateUser},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <update id="deletePublishOperationLogById" parameterType="Long">
+        UPDATE ei_publish_operation_log SET is_valid = 0 where id = #{id}
+    </update>
+
+    <update id="deletePublishOperationLogByIds" parameterType="String">
+        UPDATE ei_publish_operation_log SET is_valid = 0 where id in
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+    <select id="fuzzySelectOperationLogList" parameterType="PublishOperationLog" resultMap="PublishOperationLogResult">
+        <include refid="selectPublishOperationLogVo"/>
+        <where>
+            is_valid=1
+            <if test="id != null "> and id = #{id}</if>
+            <if test="platform != null "> and platform = #{platform}</if>
+            <if test="operationType != null "> and operation_type = #{operationType}</if>
+            <if test="jobId != null "> and job_id = #{jobId}</if>
+            <if test="detailId != null "> and detail_id = #{detailId}</if>
+            <if test="logName != null  and logName != '' "> and log_name like concat('%', #{logName}, '%')</if>
+            <if test="path != null  and path != '' "> and path like concat(#{path}, '%')</if>
+            <if test="fileName != null  and fileName != '' "> and file_name like concat('%', #{fileName}, '%')</if>
+            <if test="isValid != null "> and is_valid = #{isValid}</if>
+            <if test="createDate != null "> and create_date = #{createDate}</if>
+            <if test="createUser != null  "> and create_user = #{createUser}</if>
+            <if test="updateDate != null "> and update_date = #{updateDate}</if>
+            <if test="updateUser != null "> and update_user = #{updateUser}</if>
+            <if test="createStartDate != null ">
+                <![CDATA[ and create_date >= #{createStartDate} ]]>
+            </if>
+            <if test="createEndDate != null ">
+                <![CDATA[ and create_date <= #{createEndDate} ]]>
+            </if>
+        </where>
+    </select>
+
+</mapper>

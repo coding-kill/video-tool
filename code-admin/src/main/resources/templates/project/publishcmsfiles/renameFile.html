@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org" >
+<head>
+	<th:block th:include="include :: header('文件重命名')" />
+	<th:block th:include="include :: select2-css"/>
+</head>
+<body class="white-bg">
+    <div class="wrapper wrapper-content animated fadeInRight ibox-content">
+        <form class="form-horizontal m" id="form-question-editKps" >
+            <input id="path" name="path" th:value="${path}"  type="hidden">
+            <input id="platform" name="platform" th:value="${platform}"  type="hidden">
+            <input id="pastName" name="pastName" th:value="${name}"  type="hidden">
+			<div class="form-group">
+				<label class="col-sm-3 control-label">文件名称：</label>
+				<div class="col-sm-8">
+					<div class="input-group">
+						<input id="name" name="name" class="form-control" th:value="${name}" type="text">
+					</div>
+				</div>
+			</div>
+		</form>
+    </div>
+    <div th:include="include::footer"></div>
+	<th:block th:include="include :: select2-js"/>
+    <script type="text/javascript">
+		var prefix = ctx + "project/publishCmsFiles";
+		$("#form-question-edit").validate({
+			rules:{
+                name:{
+					required:true,
+				},
+			},
+			focusCleanup: true
+		});
+		
+		function submitHandler() {
+	        if ($.validate.form()) {
+                var formData = {"path":$("#path").val(),"pastName":$("#pastName").val(),"name":$("#name").val(),"platform":$("#platform").val()};
+	            $.operate.save(prefix + "/renameFile", formData);
+	        }
+	    }
+	</script>
+</body>
+</html>

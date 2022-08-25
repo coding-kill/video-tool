@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<head>
+<title>New Style SWF/HTML5 Stream Uploading DEMO</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link th:href="@{/stream/css/stream-v1.css}" rel="stylesheet" type="text/css"/>
+<th:block th:include="include :: header('文件上传')" />
+</head>
+<body class="white-bg">
+	<div class="wrapper wrapper-content animated fadeInRight ibox-content">
+		<form class="form-horizontal m">
+			<input type="hidden" id="param1" name="param1" th:value="${param1}">
+			<input type="hidden" id="param2" name="param2" th:value="${param2}">
+			<input type="hidden" id="param3" name="param3" th:value="${param3}">
+			<div class="form-group">
+				<label class="col-sm-2 control-label"></label>
+				<div class="col-sm-9">
+					<span><font color="red">如需混淆，请先打开对应混淆类型开关再选择文件</font></span>
+				</div>
+			</div>
+			<div class="form-group">
+				<label class="col-sm-2 control-label"></label>
+				<label class="col-sm-2 control-label">css混淆：</label>
+				<div class="col-sm-2">
+					<label class="toggle-switch switch-solid">
+						<input type="checkbox" id="cssparam" checked=""> <span></span>
+					</label>
+				</div>
+				<label class="col-sm-2 control-label">js混淆：</label>
+				<div class="col-sm-2">
+					<label class="toggle-switch switch-solid">
+						<input type="checkbox" id="jsparam" checked=""> <span></span>
+					</label>
+				</div>
+			</div >
+			<div class="form-group">
+				<label class="col-sm-1 control-label"></label>
+				<label class="col-sm-1 control-label"></label>
+				<div class="col-sm-10">
+					<div id="i_select_files" style="padding:50px 0;"></div>
+				</div>
+			</div>
+			<div class="form-group">
+				<label class="col-sm-1 control-label"></label>
+				<label class="col-sm-1 control-label"></label>
+				<div class="col-sm-10">
+					<div id="i_stream_files_queue"></div>
+				</div>
+			</div>
+			<div class="form-group">
+				<label class="col-sm-1 control-label" style="width: 10%"></label>
+				<label class="col-sm-2 control-label">备注：</label>
+				<div class="col-sm-6">
+					<input id="remark" name="remark" placeholder="如需填写,请在选择文件之前" class="form-control"/>
+				</div>
+				<label class="col-sm-1 control-label"></label>
+				<a class="btn btn-primary btn-rounded btn-sm" onclick="showFilesQueue()"><i id="showBtn">显示上传详情</i>&nbsp;</a>
+
+			</div>
+			<!--<button onclick="javascript:_t.upload();">开始上传</button>|<button onclick="javascript:_t.stop();">停止上传</button>|<button onclick="javascript:_t.cancel();">取消</button>-->
+			<!--<br>
+			Messages:
+			<div id="i_stream_message_container" class="stream-main-upload-box" style="overflow: auto;height:200px;">
+			</div>-->
+		</form>
+	</div>
+<br>
+
+
+<script type="text/javascript" th:src="@{/stream/js/stream-v1.js}" ></script>
+<script th:src="@{/js/jquery.min.js}"></script>
+<div th:include="include::footer"></div>
+<script type="text/javascript">
+	/*function test1() {
+        var val = $("input[id='jsparam']").is(':checked') == true ? 1 : 0;
+        console.log(val)
+    }*/
+	/**
+	 * 配置文件（如果没有默认字样，说明默认值就是注释下的值）
+	 * 但是，on*（onSelect， onMaxSizeExceed...）等函数的默认行为
+	 * 是在ID为i_stream_message_container的页面元素中写日志
+	 */
+	var config = {
+		browseFileId : "i_select_files", /** 选择文件的ID, 默认: i_select_files */
+		browseFileBtn : "<div>请选择文件</div>", /** 显示选择文件的样式, 默认: `<div>请选择文件</div>` */
+		dragAndDropArea: "i_select_files", /** 拖拽上传区域，Id（字符类型"i_select_files"）或者DOM对象, 默认: `i_select_files` */
+		dragAndDropTips: "<span>把文件(文件夹)拖拽到这里</span>", /** 拖拽提示, 默认: `<span>把文件(文件夹)拖拽到这里</span>` */
+		filesQueueId : "i_stream_files_queue", /** 文件上传容器的ID, 默认: i_stream_files_queue */
+		filesQueueHeight : 0, /** 文件上传容器的高度（px）, 默认: 450 */
+		messagerId : "i_stream_message_container", /** 消息显示容器的ID, 默认: i_stream_message_container */
+		multipleFiles: true, /** 多个文件一起上传, 默认: false */
+		onRepeatedFile: function(f) {
+			alert("文件："+f.name +" 大小："+f.size + " 已存在于上传队列中。");
+			return false;	
+		},
+//		autoUploading: false, /** 选择文件后是否自动上传, 默认: true */
+//		autoRemoveCompleted : true, /** 是否自动删除容器中已上传完毕的文件, 默认: false */
+//		maxSize: 104857600//, /** 单个文件的最大大小，默认:2G */
+//		retryCount : 5, /** HTML5上传失败的重试次数 */
+		//param1 平台：local-本地 非local字符串-腾讯云  param2 路径：上传路径 param3 子平台：区分具体平台
+		postVarsPerFile : {
+			param1: $("#param1").val(),
+			param2: encodeURIComponent(encodeURIComponent($("#param2").val())),
+            param3: $("#param3").val()
+		},
+//		swfURL : "/swf/FlashUploader.swf", /** SWF文件的位置 */
+		tokenURL : "/project/stream/file/tk", /** 根据文件名、大小等信息获取Token的URI（用于生成断点续传、跨域的令牌） */
+		// frmUploadURL : "/fd;", /** Flash上传的URI */
+		uploadURL : "/project/stream/file/upload", /** HTML5上传的URI */
+//		simLimit: 200, /** 单次最大上传文件个数 */
+//		extFilters: [".txt", ".rpm", ".rmvb", ".gz", ".rar", ".zip", ".avi", ".mkv", ".mp3"], /** 允许的文件扩展名, 默认: [] */
+		onSelect: function(list) {
+		    config.postVarsPerFile.remark=$("#remark").val();
+		    config.postVarsPerFile.jsparam=$("input[id='jsparam']").is(':checked') == true ? 1 : 0;
+		    config.postVarsPerFile.cssparam=$("input[id='cssparam']").is(':checked') == true ? 1 : 0;
+		}, /** 选择文件后的响应事件 */
+//		onMaxSizeExceed: function(size, limited, name) {alert('onMaxSizeExceed')}, /** 文件大小超出的响应事件 */
+//		onFileCountExceed: function(selected, limit) {alert('onFileCountExceed')}, /** 文件数量超出的响应事件 */
+//		onExtNameMismatch: function(name, filters) {alert('onExtNameMismatch')}, /** 文件的扩展名不匹配的响应事件 */
+//		onCancel : function(file) {alert('Canceled:  ' + file.name)}, /** 取消上传文件的响应事件 */
+//		onComplete: function(file) {alert('onComplete')}, /** 单个文件上传完毕的响应事件 */
+        /** 所以文件上传完毕的响应事件 */
+		/*onQueueComplete: function(msg) {
+            alert("onQueueComplete(msg: "+msg+")	---==>		[OK]");
+		},*/
+//		onUploadError: function(status, msg) {alert('onUploadError')} /** 文件上传出错的响应事件 */
+//		onDestroy: function() {alert('onDestroy')} /** 文件上传出错的响应事件 */
+	};
+	var _t = new Stream(config);
+
+
+	//回调函数
+	function submitHandler() {
+        $.modal.close();
+        parent.$.table.refresh();
+        parent.refreshMyTree($("#param2").val());
+	}
+
+	var filesQueueView = 0;
+	//动态变更上传队列详情的高度
+    function showFilesQueue(){
+        if(filesQueueView==0){
+            $(".stream-files-scroll").css("height","200px");
+            $("#showBtn").html("隐藏上传详情");
+            filesQueueView = 1;
+		}else {
+            $(".stream-files-scroll").css("height","0px");
+            $("#showBtn").html("显示上传详情");
+            filesQueueView = 0;
+		}
+	}
+
+
+</script>
+</body>

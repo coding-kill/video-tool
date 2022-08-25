@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<head>
+	<th:block th:include="include :: header('文件版本列表')" />
+</head>
+<body class="gray-bg">
+<div class="container-div">
+	<div class="row">
+		<form id="formId">
+			<div class="select-list">
+				<ul>
+					<input type="hidden" id="path" name="path" th:value="${publishfileversion.path}">
+					<input type="hidden" id="platform" name="platform" th:value="${publishfileversion.platform}">
+					<input type="hidden" id="name" name="name" th:value="${publishfileversion.name}">
+					<input type="hidden" id="id" name="id" th:value="${publishfileversion.id}">
+					<input type="hidden" id="versionNum" name="versionNum" th:value="${publishfileversion.versionNum}">
+
+				</ul>
+			</div>
+		</form>
+
+		<div class="col-sm-12 select-table table-striped">
+			<table id="bootstrap-table" data-mobile-responsive="true"></table>
+		</div>
+	</div>
+</div>
+<div th:include="include :: footer"></div>
+<script th:inline="javascript">
+
+	var prefix = ctx + "project/publishFileVersion";
+
+	$(function() {
+		var options = {
+			url: prefix + "/getFileAllVersion",
+			modalName: "文件版本",
+			showExport: false,
+			showSearch: false,
+			showRefresh: false,
+			showToggle: false,
+			showColumns: false,
+			columns: [
+				{
+					field : 'id',
+					title : '主键id',
+					visible: false
+				},
+				{
+					field : 'name',
+					title : '文件名',
+				},
+				{
+					field : 'versionNum',
+					title : '版本号',
+				},
+				{
+					field : 'createDate',
+					title : '修改时间',
+				},
+				{
+					field : 'size',
+					title : '文件大小',
+					formatter: function(value, row, index) {
+						if(row.delFlag === 1){
+							//  删除的时候大小展示已删除
+							return "已删除";
+						}
+						var fileSize = row.size;
+						if (fileSize != null) {
+							var number1024 = 1<<10;
+							var number1048576 = 1<<20;
+							var number1073741824 = 1<<30;
+							if (fileSize > number1024) {
+								if (fileSize > number1048576) {
+									if (fileSize > number1073741824) {
+										var fixed = (fileSize/number1073741824).toFixed(2);
+										return fixed+"GB";
+									}else {
+										var fixed = (fileSize/number1048576).toFixed(2);
+										return fixed+"MB";
+									}
+								}else {
+									var fixed = (fileSize/number1024).toFixed(2);
+									return fixed+"KB";
+								}
+							}else {
+								return fileSize+"B";
+							}
+						}else {
+							return "-";
+						}
+					}
+				},
+				{
+					field : 'createUserName',
+					title : '修改人',
+				},
+				{
+					title: '操作',
+					align: 'left',
+					cellStyle: function (value, row, index) {
+						return {css: {"overflow": "hidden", "text-overflow": "ellipsis", "white-space": "nowrap"}}
+					},
+					formatter: function(value, row, index) {
+						var actions = [];
+						if(row.id==$("#id").val()){
+							actions.push('<a class="btn btn-info btn-xs disabled" href="javascript:void(0)" ><i class="fa fa-exchange"></i>已选的基版本</a> ');
+						}else {
+							var url = prefix + "/comparedThisFile?platform="+$("#platform").val()+"&leftId="+$("#id").val()+"&rightId="+row.id;
+							// actions.push('<a class="btn btn-info btn-xs " href="javascript:void(0)" onclick="comparedThisFile('+ row.id +','+ row.versionNum +')"><i class="fa fa-exchange"></i>对比该文件</a> ');
+							actions.push('<a class="btn btn-info btn-xs " href="'+url+'" target="_blank"><i class="fa fa-exchange"></i>对比该文件</a> ');
+						}
+						return actions.join('');
+					}
+				}]
+		};
+		$.table.init(options);
+	});
+
+	//对比文件的方法
+	function comparedThisFile(id,versionNum){
+		//平台标签
+		var platform = $("#platform").val();
+		var verNum = $("#versionNum").val();
+		var tabname = "文件对比"+verNum+"<-->"+versionNum;
+		$.modal.openTab(tabname,prefix + "/comparedThisFile?platform="+platform+"&leftId="+$("#id").val()+"&rightId="+id);
+	}
+
+	//对比文件的方法，上传腾讯云法
+	function comparedThisFile2(id){
+		//平台标签
+		var platform = $("#platform").val();
+		$.ajax({
+			type:"post",
+			url:prefix+"/comparedThisFile2",
+			dataType:"json",
+			data:{
+				platform:platform,
+				leftId:$("#id").val(),
+				rightId:id
+			},
+			success:function (res) {
+				if (res.code == 0) {
+					var url = res.msg;
+					console.log(url);
+					openNewWindow(url);
+				}else {
+					$.modal.alertError("请选择文件")
+				}
+			}
+		});
+	}
+
+	//打开新窗口，一切事件都调用该方法
+	function openNewWindow(url) {
+		let a = $("<a href='"+url+"' target='_blank'></a>").get(0);
+		let e = document.createEvent('MouseEvents');
+		e.initEvent( 'click', true, true );
+		a.dispatchEvent(e);
+	}
+
+
+</script>
+</body>
+</html>

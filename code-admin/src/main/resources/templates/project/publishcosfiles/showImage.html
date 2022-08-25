@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:include="include :: header('图片预览')"/>
+</head>
+<body class="white-bg">
+<div style="width: 100%;height: 400px;text-align: center;display:flex;justify-content: center;align-items:center">
+    <img th:src="${filePath}"/>
+</div>
+<div th:include="include::footer"></div>
+<script type="text/javascript"  th:inline="javascript">
+    $(function(){
+        $.each($('img'),function(i,item){
+            if($(this).outerWidth()>$(this).outerHeight()){
+                $(this).css('width','100%');
+            }else{
+                $(this).css('height','100%');
+            }
+        });
+    });
+</script>
+</body>
+</html>

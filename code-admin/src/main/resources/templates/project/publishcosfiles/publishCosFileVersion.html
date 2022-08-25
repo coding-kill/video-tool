@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<head>
+	<th:block th:include="include :: header('文件版本列表')" />
+	<style>
+		.my-search-collapse {
+			width: 100%;
+			background: #fff;
+			border-radius: 6px;
+			margin-top: 10px;
+			padding-top: 10px;
+			padding-bottom: 6px;
+			box-shadow: 1px 1px 3px rgba(0,0,0,.2);
+		}
+	</style>
+</head>
+<body class="gray-bg">
+<div class="container-div">
+	<div class="row">
+		<div class="col-sm-12 my-search-collapse">
+			<div>
+				<div style="color:red;">当前目录：[[${title}]]</div>
+			</div>
+		</div>
+		<div class="col-sm-12 search-collapse">
+			<form id="formId">
+				<div class="select-list">
+					<ul>
+						<input type="hidden" id="path" name="path" th:value="${title}">
+						<input type="hidden" id="platform" name="platform" th:value="${platform}">
+						<li>
+							文件名：<input type="text" name="name"/>
+						</li>
+
+						<li>
+							<input name="createUser" type="hidden" id="createUser"/>
+							操作人：<input id="createUserName" name="createUserName" readonly  type="text" onclick="selectUserDeptTree('createUser','createUserName')" >
+						</li>
+
+						<li>
+							备注信息：<input type="text" name="remark"/>
+						</li>
+
+						<li class="input-daterange input-group">
+							修改时间：
+							<input type="text" name="createStartDate" readonly id="createStartDate"/>
+							至
+							<input type="text" name="createEndDate" readonly id="createEndDate"/>
+						</li>
+
+						<li>
+							<a class="btn btn-primary btn-rounded btn-sm" onclick="search1();"><i
+									class="fa fa-search"></i>&nbsp;搜索</a>
+							<a class="btn btn-warning btn-rounded btn-sm" onclick="reset1();"><i
+									class="fa fa-refresh"></i>&nbsp;重置</a>
+						</li>
+						<li style="float: right">
+							<button style="width: 40px;" class="btn btn-default btn-outline" type="button" onclick="search1();" name="refresh" aria-label="刷新" title="刷新"><i class="glyphicon glyphicon-refresh icon-refresh"></i> </button>
+						</li>
+					</ul>
+				</div>
+			</form>
+		</div>
+
+		<div class="col-sm-12 select-table table-striped">
+			<table id="bootstrap-table" data-mobile-responsive="true"></table>
+		</div>
+	</div>
+</div>
+<div th:include="include :: footer"></div>
+<script th:inline="javascript">
+    var viewImgFlag = [[${@permission.hasPermi('project:publishCosFiles:showImage')}]];
+
+    var prefix = ctx + "project/publishFileVersion";
+
+    $(function() {
+        var options = {
+            url: prefix + "/cmsFileVersionList",
+            modalName: "文件版本",
+            showExport: false,
+            pagination: false,
+            showSearch: false,
+            showToggle: false,
+            showRefresh:false,
+            showColumns:false,
+            sortName:'name',
+            sortOrder:'asc',
+            columns: [
+                {
+                    title: '',
+                    align: 'center',
+                    formatter: function(value, row, index) {
+                        var actions = [];
+                        //所有的加版本号
+						actions.push('<a class="" href="javascript:" onclick="addChildHtml(\'' + row.name + '\', this,'+row.id+' )"><i class="glyphicon glyphicon-plus icon-plus"></i></a>');
+                        return actions.join('');
+                    }
+                },
+                {
+                    checkbox: true
+                },
+                {
+                    field : 'id',
+                    title : '主键id',
+                    visible: false
+                },
+                {
+                    field : 'name',
+                    title : '文件名',
+					formatter: function(value, row, index) {
+						var showname = value;
+						if (value.length > 15) {
+							showname = value.substr(0,14)+"...";
+						}
+						var html = "<div title='"+value+"'>"+showname+"</div>";
+						return html;
+					},
+                    sortable:true
+                },
+                {
+                    field : 'versionNum',
+                    title : '版本号',
+                },
+                {
+                    field : 'createDate',
+                    title : '修改时间',
+                    sortable:true
+                },
+                {
+                    field : 'size',
+                    title : '文件大小',
+                    formatter: function(value, row, index) {
+                        if(row.delFlag === 1){
+                            //  删除的时候大小展示已删除
+                            return "已删除";
+                        }
+                        var fileSize = row.size;
+                        if (fileSize != null) {
+                            var number1024 = 1<<10;
+                            var number1048576 = 1<<20;
+                            var number1073741824 = 1<<30;
+                            if (fileSize > number1024) {
+                                if (fileSize > number1048576) {
+                                    if (fileSize > number1073741824) {
+                                        var fixed = (fileSize/number1073741824).toFixed(2);
+                                        return fixed+"GB";
+                                    }else {
+                                        var fixed = (fileSize/number1048576).toFixed(2);
+                                        return fixed+"MB";
+                                    }
+                                }else {
+                                    var fixed = (fileSize/number1024).toFixed(2);
+                                    return fixed+"KB";
+                                }
+                            }else {
+                                return fileSize+"B";
+                            }
+                        }else {
+                            return "-";
+                        }
+                    }
+                },
+                {
+                    field : 'createUserName',
+                    title : '修改人',
+                },
+                {
+                    field : 'remark',
+                    title : '备注信息',
+                    formatter: function(value, row, index) {
+                        return $.table.tooltip(value);
+                    }
+                },
+                {
+                    title: '操作',
+                    align: 'left',
+                    cellStyle: function (value, row, index) {
+                        return {css: {"overflow": "hidden", "text-overflow": "ellipsis", "white-space": "nowrap"}}
+                    },
+                    formatter: function(value, row, index) {
+                        var actions = [];
+                        var fileType = row.type;
+
+                        if (fileType != null
+                            && ("jpg" == fileType.toLowerCase() || "png" == fileType.toLowerCase() || "gif" == fileType.toLowerCase() || "jpeg" == fileType.toLowerCase())) {
+                            actions.push('<a class="btn btn-success btn-xs ' + viewImgFlag + '" href="javascript:void(0)" onclick="viewImage(\'' + row.bakPathPrefix +"/"+ row.bakName +'\')"><i class="fa fa-leaf"></i>预览</a> ');
+                        }
+                        return actions.join('');
+                    }
+                }]
+        };
+        $.table.init(options);
+        initLaydate();
+    });
+
+
+    /*账户管理-新增-选择人部门树*/
+    function selectUserDeptTree(treeId,treeName) {
+        // url 可选参数， 其他参数 请自定扩展
+        // permission 权限 0.无权限 1.按照登录人数据权限
+        // showType 展示方式 0.人员 1.人员+工号
+        // checkType 选中类型 0.多选 1.单选
+        // showLevel 展示层级
+        var url = ctx + "system/userDeptTree?showType=1&showLevel=2&checkType=1";
+        var options = {
+            title: '选择部门',
+            width: "500",
+            url: url,
+            callBack: function (index, layero) {
+                // 是否允许选父级
+                var body = layer.getChildFrame('body', index);
+                $("#"+treeId).val(body.find('#ids').val());
+                $("#"+treeName).val(body.find('#names').val());
+                layer.close(index);
+            }
+        };
+        $.modal.openOptions(options);
+    }
+
+    function initLaydate() {
+        layui.use('laydate', function() {
+            var laydate = layui.laydate;
+            var startDate = laydate.render({
+                elem: '#createStartDate',
+                //max: $('#createEndDate').val(),
+                type: 'datetime',
+                theme: 'molv',
+                trigger: 'click'
+                /*done: function (value, date) {
+                    // 结束时间大于开始时间
+                    if (value !== '') {
+                        endDate.config.min.year = date.year;
+                        endDate.config.min.month = date.month - 1;
+                        endDate.config.min.date = date.date;
+                    } else {
+                        endDate.config.min.year = '';
+                        endDate.config.min.month = '';
+                        endDate.config.min.date = '';
+                    }
+                }*/
+            });
+            var endDate = laydate.render({
+                elem: '#createEndDate',
+				//max:$.common.getNowFormatDate(),
+                type: 'datetime',
+                theme: 'molv',
+                trigger: 'click'
+                /*done: function (value, date) {
+                    // 开始时间小于结束时间
+                    if (value !== '') {
+                        startDate.config.max.year = date.year;
+                        startDate.config.max.month = date.month - 1;
+                        startDate.config.max.date = date.date;
+                    } else {
+                        startDate.config.max.year = '';
+                        startDate.config.max.month = '';
+                        startDate.config.max.date = '';
+                    }
+                }*/
+            });
+        })
+    }
+
+    //预览图片
+    function viewImage(filePath) {
+        var url = ctx + 'project/publishCosFiles/showImage?filePath=' + filePath;
+        $.modal.open("图片预览", url , '600', '500',function (index) {
+			layer.close(index);
+		});
+    }
+
+    //加载当前文件的历史版本
+    function addChildHtml(name,tdThis,id) {
+//			判断是否是加号，加号的话展开并加载子类，如果是减号的话则删除掉子类
+        if ($(tdThis).children('i').hasClass('glyphicon-plus')) {
+//				加载子类数据
+            var html = "";
+            var formData = {"path":$("#path").val(),"platform":$("#platform").val(),"name":name};
+            $.ajax({
+                url: prefix + "/getOneFileHistory",
+                type: 'post',
+                dataType: "json",
+                data: formData,
+                success: function(result) {
+                    if(result.code == web_status.SUCCESS){
+                        $.each(result.data,function (i,k) {
+                            html += '<tr child-index="'+i+'" class="child-tr pid-'+id+'">';
+                            html +='<td style="text-align: center; "/>';
+                            html +='<td/>';
+                            if(k.name==null){
+                                html +='<td style="">-</td>';
+                            }else {
+								var showname = k.name;
+								if (showname.length > 15) {
+									showname = showname.substr(0,14)+"...";
+								}
+								html += '<td title="'+k.name+'">'+showname+'</td>';
+                            }
+                            html +='<td style="">'+k.versionNum+'</td>';
+                            html +='<td style="">'+k.createDate+'</td>';
+                            var fileSize = k.size;
+                            if (fileSize != null) {
+                                var number1024 = 1<<10;
+                                var number1048576 = 1<<20;
+                                var number1073741824 = 1<<30;
+                                if (fileSize > number1024) {
+                                    if (fileSize > number1048576) {
+                                        if (fileSize > number1073741824) {
+                                            var fixed = (fileSize/number1073741824).toFixed(2);
+                                            html +='<td style="">'+fixed+'GB</td>';
+                                        }else {
+                                            var fixed = (fileSize/number1048576).toFixed(2);
+                                            html +='<td style="">'+fixed+'MB</td>';
+                                        }
+                                    }else {
+                                        var fixed = (fileSize/number1024).toFixed(2);
+                                        html +='<td style="">'+fixed+'KB</td>';
+                                    }
+                                }else {
+                                    html +='<td style="">'+fileSize+'B</td>';
+                                }
+                            }else {
+                                html +='<td style="">-</td>';
+                            }
+
+                            html +='<td style="">'+k.createUserName+'</td>';
+                            html +='<td style="">'+$.table.tooltip(k.remark);+'</td>';
+                            html +='<td style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; ">';
+
+                            var fileType = k.type;
+                            if (fileType != null
+                                && ("jpg" == fileType.toLowerCase() || "png" == fileType.toLowerCase() || "gif" == fileType.toLowerCase() || "jpeg" == fileType.toLowerCase())) {
+                                html +='<a class="btn btn-success btn-xs ' + viewImgFlag + '" href="javascript:void(0)" onclick="viewImage(\'' + k.bakPathPrefix +"/"+ k.bakName +'\')"><i class="fa fa-leaf"></i>预览</a> ';
+                            }
+                            if(i!=0){
+                                //不是第一个的时候加还原
+                                html +='<a class="btn btn-warning btn-xs " href="javascript:void(0)" onclick="rollbackFile('+k.id+')">';
+                                html +='<i class="fa fa-mail-reply"/>还原</a> ';
+							}else {
+                                // 是第一个的时候如果是删除的加还原
+                                if(k.delFlag === 1){
+                                    html +='<a class="btn btn-warning btn-xs " href="javascript:void(0)" onclick="rollbackFile('+k.id+')">';
+                                    html +='<i class="fa fa-mail-reply"/>还原</a> ';
+								}
+							}
+                            if (fileType != null && ("html" == fileType.toLowerCase() || "shtml" == fileType.toLowerCase() || "css" == fileType.toLowerCase() ||
+								"js" == fileType.toLowerCase()|| "txt" == fileType.toLowerCase())) {
+                                html +='<a class="btn btn-info btn-xs " href="javascript:void(0)" onclick="comparedFile('+k.id+')">';
+                                html +='<i class="fa fa-exchange"/>对比</a>';
+                            }
+                            html +='</td>';
+                            html +='</tr>';
+                        });
+                        $(tdThis).parent().parent().after(html);
+                    }else{
+                        if("未登录或登录超时。请重新登录"==res.msg){
+                            window.location=ctx+"login";
+                        }else {
+                            $.modal.alertError(result.msg);
+                        }
+                    }
+                }
+            });
+//				写入之类成功之后在去掉加号等样式，防止出错
+            $(tdThis).children('i').removeClass('glyphicon-plus');
+            $(tdThis).children('i').removeClass('icon-plus');
+            $(tdThis).children('i').addClass('glyphicon-minus');
+            $(tdThis).children('i').addClass('icon-minus');
+        }else {
+//				减号的时候点击将子类数据移除，然后将减号变加号
+            $('.pid-'+id+'').remove();
+            $(tdThis).children('i').removeClass('glyphicon-minus');
+            $(tdThis).children('i').removeClass('icon-minus');
+            $(tdThis).children('i').addClass('glyphicon-plus');
+            $(tdThis).children('i').addClass('icon-plus');
+        }
+    }
+
+    //还原文件的方法
+    function rollbackFile(id){
+        $.modal.confirm("确认要还原该文件吗?", function() {
+            var url =  prefix + "/rollbackFile";
+            var data = { "id": id };
+            $.operate.submit(url, "post", "json", data,function () {
+                $.table.search();
+            });
+        });
+    }
+
+    //对比选择
+    function comparedFile(id){
+        $.modal.openTab('对比选择',prefix + "/selectCompared/?id="+id);
+    }
+
+	function search1() {
+		var start = $("#createStartDate").val();
+		var end = $("#createEndDate").val();
+		var startdate = new Date(start);
+		var enddate = new Date(end);
+		if (startdate.getTime() > enddate.getTime()) {
+			$.modal.alertError("开始时间不能大于结束时间");
+			return false;
+		}
+		$.table.search();
+	}
+
+	function reset1() {
+		$("#createUser").val("");
+		$.form.reset();
+	}
+</script>
+</body>
+</html>

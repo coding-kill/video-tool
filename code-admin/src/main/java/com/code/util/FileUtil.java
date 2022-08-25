@@ -1,6 +1,8 @@
 package com.code.util;
 
 
+import com.code.filemanageweb.publishfileversion.domain.PublishFileVersion;
+
 import java.io.*;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -354,7 +356,50 @@ public class FileUtil {
     }
 
 
+    /**
+     * 获取某个目录下所有的文件的全路径和文件名的集合；
+     *
+     * @return
+     */
+    public static List<PublishFileVersion> getAllDictInfo(String mulu) {
+        List<PublishFileVersion> allFileInfoList = new ArrayList<>();
+        File file = new File(mulu);
+        if(!file.exists()){
+            return allFileInfoList;
+        }
+        File[] files = file.listFiles();
+        boolean permissions = CommonUtil.getPermissions();
+        for (int i = 0; i < files.length; i++) {
+            //加载目录树时 如果不是文件夹直接跳过--
+            if (!files[i].isDirectory()) {
+                continue;
+            }
+            if (!permissions && files[i].toPath().toString().contains("ei_bak")) {
+                //不能展示备份目录
+                continue;
+            }
+            PublishFileVersion publishFileVersion = new PublishFileVersion();
+            publishFileVersion.setPath(files[i].toString());
+            publishFileVersion.setName(files[i].getName());
 
+//          20220408注释掉判断是否有子目录能否打开的判断，优化提高树的效率
+//          20220321增加判断子类里边有文件夹的时候才是父级
+//            File[] childFiles = files[i].listFiles();
+//            boolean isParent = false;
+//            for(File childFile : childFiles){
+//                if(childFile.isDirectory()){
+//                    isParent = true;
+//                    break;
+//                }
+//            }
+            publishFileVersion.setFolderFlag(true);
+            allFileInfoList.add(publishFileVersion);
+        }
+        List<PublishFileVersion> sortDirInfoList = allFileInfoList.stream()
+                .sorted(Comparator.comparing(PublishFileVersion::getName))
+                .collect(Collectors.toList());
+        return sortDirInfoList;
+    }
 
     /**
      * 获取文件夹内详情
