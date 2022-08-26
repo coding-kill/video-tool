@@ -31,7 +31,7 @@ public class FileUtils {
 public static void main(String[] args) {
     Set<String> md5Set = new HashSet<>();
     Map<String,Object> md5Map = new HashMap<>();
-    String path = "E:\\";
+    String path = "D:\\";
     File file = new File(path);
     if(file.isDirectory()){
         getDirectoryChildMd5(path, md5Set,md5Map);
@@ -57,6 +57,12 @@ public static void main(String[] args) {
     }
 }
     public static void getDirectoryChildMd5(String path,Set<String> md5Set,Map<String,Object> md5Map){
+        if(path.contains("allWorkSpace")){
+            return;
+        }
+        if(path.contains("maveRestory")){
+            return;
+        }
         File file = new File(path);
         File[] files = file.listFiles();
         try{
@@ -67,11 +73,11 @@ public static void main(String[] args) {
                     getDirectoryChildMd5(currentPath, md5Set,md5Map);
                 }else {
                     try {
-                        if(file.length()==0){
+                        if(getFile.length()==0){
                             continue;
                         }
                         String md5 = DigestUtils.md5Hex(new FileInputStream(getFile.getAbsolutePath()));
-                        md5 = md5 + file.length();
+                        md5 = md5 + getFile.length();
                         if(md5Set.contains(md5)){
                             System.out.println("当前文件重复，文件名--》"+getFile.getAbsolutePath()+";已有文件路径--》"+md5Map.get(md5));
                             FileUtil.writeFile("当前文件重复，文件名--》"+getFile.getAbsolutePath()+";已有文件路径--》"+md5Map.get(md5)+ System.getProperty("line.separator"),
