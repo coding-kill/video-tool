@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<head>
+	<th:block th:include="include :: header('cms文件管理')" />
+	<th:block th:include="include :: layout-latest-css" />
+	<th:block th:include="include :: ztree-css" />
+	<style>
+		.mySelect {
+			border: 1px solid #ddd;
+			border-radius: 4px;
+			background: transparent;
+			outline: none;
+			height: 30px;
+			width: 100px;
+			cursor:pointer;
+		}
+
+		.my-search-collapse {
+			width: 100%;
+			background: #fff;
+			border-radius: 6px;
+			margin-top: 10px;
+			padding-top: 10px;
+			padding-bottom: 6px;
+			box-shadow: 1px 1px 3px rgba(0,0,0,.2);
+		}
+	</style>
+
+</head>
+<body class="gray-bg">
+	<div class="ui-layout-west">
+		<div class="main-content">
+			<div class="box box-main">
+				<div class="box-header">
+					<div class="box-title">
+						<i class="fa icon-grid"></i> 文件夹列表
+					</div>
+					<div class="box-tools pull-right">
+						<select id="treePlatform" name="treePlatform" class="mySelect" onchange="treePlatformMonitor()">
+							<option th:each="map : ${platformList}" th:text="${map.name}" th:platform="${map.platform}" th:value="${map.path}"></option>
+						</select>
+					</div>
+				</div>
+				<div class="ui-layout-content">
+					<div id="tree" class="ztree"></div>
+				</div>
+			</div>
+		</div>
+	</div>
+	
+	<div class="container-div ui-layout-center">
+		<div class="row">
+			<div class="col-sm-12 my-search-collapse">
+                <div class="select-list">
+                    <ul>
+                        <li>
+                            <div id="showTitle"><a href="#" th:onclick="fileNameClickOther([[${path}]],this);" >根目录</a></div>
+                        </li>
+                    </ul>
+				</div>
+			</div>
+			<div class="col-sm-12 search-collapse">
+				<div class="form-group">
+					<div class="select-list">
+						<ul>
+							<li>
+								<a class="btn btn-info" onclick="webUpload()" shiro:hasPermission="project:publishCosFiles:upload" ><i class="fa fa-upload"></i>&nbsp;上传</a>
+							</li>
+							<!--<li>-->
+								<!--<a class="btn btn btn-success btn-rounded btn-sm" onclick="streamUpload()" shiro:hasPermission="project:publishCosFiles:upload"><i class="fa fa-upload"></i>&nbsp;旧上传插件</a>-->
+							<!--</li>-->
+							<li>
+								<a class="btn btn-primary btn-del" onclick="batchDownloadFiles()" shiro:hasPermission="project:publishCosFiles:batchDownload"><i class="fa fa-download"></i>&nbsp;批量下载</a>
+							</li>
+							<li>
+								<a class="btn btn-info" onclick="getHistoricVersion()" shiro:hasPermission="project:publishCmsFiles:getHistoricVersion"><i class="fa fa-history"></i>&nbsp;历史版本</a>
+							</li>
+						</ul>
+					</div>
+				</div>
+				<br>
+				<div class="hr-line-dashed"></div>
+				<form id="user-form">
+					<input type="hidden" id="path" name="path" th:value="${path}">
+					<input type="hidden" id="platform" name="platform" th:value="${platform}">
+					<input type="hidden" id="filterFlag" name="filterFlag">
+					<div class="select-list">
+						<ul>
+							<li>
+								名称：<input type="text" name="name" id="name"/>
+							</li>
+							<li>
+								<a class="btn btn-primary btn-rounded btn-sm" onclick="search1();" id="search"><i
+										class="fa fa-search"></i>&nbsp;搜索</a>
+							    <a class="btn btn-warning btn-rounded btn-sm" onclick="$.form.reset()"><i class="fa fa-refresh"></i>&nbsp;重置</a>
+							</li>
+							<li style="float: right">
+								<button style="width: 40px;" class="btn btn-default btn-outline" type="button" onclick="rightRefresh()" name="refresh" aria-label="刷新" title="刷新"><i class="glyphicon glyphicon-refresh icon-refresh"></i> </button>
+								<button style="width: 40px;" class="btn btn-default btn-outline" type="button" onclick="toggleCustomView()" name="customView" aria-label="Toggle custom view" title="Toggle custom view"><i class="glyphicon glyphicon glyphicon-eye-open"></i> </button>
+							</li>
+						</ul>
+					</div>
+				</form>
+			</div>
+
+
+			<div id="tableDiv" class="col-sm-12 select-table table-striped" style="height: calc(100% - 213px);overflow: auto">
+				<table id="bootstrap-table" data-mobile-responsive="true"></table>
+				<div id="customViewDiv"  style="display: none;">
+					<div class="row mx-0" id="customViewRowDiv">
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	
+	<th:block th:include="include :: footer" />
+	<th:block th:include="include :: layout-latest-js" />
+	<th:block th:include="include :: ztree-js" />
+
+	<script th:inline="javascript">
+		var prefix = ctx + "project/publishCmsFiles";
+        var viewImgFlag = [[${@permission.hasPermi('project:publishCmsFiles:viewImage')}]];
+        var downloadFlag = [[${@permission.hasPermi('project:publishCmsFiles:download')}]];
+        var removeFlag = [[${@permission.hasPermi('project:publishCmsFiles:remove')}]];
+        var RenameFlag = [[${@permission.hasPermi('project:publishCmsFiles:rename')}]];
+
+        var folderImg = ctx + "img/folder.png";
+        var fileImg = ctx + "img/file.png";
+		$(function() {
+		    var panehHidden = false;
+		    if ($(this).width() < 769) {
+		        panehHidden = true;
+		    }
+		    $('body').layout({ initClosed: panehHidden, west__size: 250 });
+            queryContentList();
+            queryContentTree();
+        });
+
+		function search1() {
+			$.modal.loading("数据加载中");
+			$.table.search();
+		}
+
+		function queryContentList() {
+		    var options = {
+		        url: prefix + "/list",
+		        modalName: "目录管理",
+                pagination: false,
+                showSearch: false,
+                showRefresh: false,
+                showToggle: false,
+                showColumns: false,
+                responseHandler: responseHandler,
+                uniqueId:'name',
+		        columns: [{
+		            checkbox: true
+		        },
+		        {
+		            field: 'name',
+		            title: '文件名',
+                    sortable:true,
+                    formatter: function(value, row, index) {
+						var showname = value;
+						if (value.length > 15) {
+							showname = value.substr(0,14)+"...";
+						}
+		                if (row.folderFlag) {
+                            var path = row.path;
+                            return '<a href="#" onclick="fileNameClick('+"'"+path+"'"+')" title="'+value+'"><i class="fa fa-folder"></i>&nbsp;'+showname+'</a>';
+                        }else {
+                            return '<a href="javascript:void(0)" ondblclick="renameFile(\''+row.name+'\')" title="'+value+'"><i class="fa fa-file"></i>&nbsp;'+showname+row.sizeName+'</a> ';
+                        }
+					}
+		        },
+		        {
+		            field: 'size',
+		            title: '大小',
+                    formatter: function(value, row, index) {
+                        if (row.folderFlag) {
+                            return '-';
+                        }
+                        var fileSize = row.size;
+                        if (fileSize != null) {
+                            var number1024 = 1<<10;
+                            var number1048576 = 1<<20;
+                            var number1073741824 = 1<<30;
+                            if (fileSize > number1024) {
+                                if (fileSize > number1048576) {
+                                    if (fileSize > number1073741824) {
+                                        var fixed = (fileSize/number1073741824).toFixed(2);
+                                        return fixed+"GB";
+                                    }else {
+                                        var fixed = (fileSize/number1048576).toFixed(2);
+                                        return fixed+"MB";
+                                    }
+                                }else {
+                                    var fixed = (fileSize/number1024).toFixed(2);
+                                    return fixed+"KB";
+                                }
+                            }else {
+                                return fileSize+"B";
+                            }
+                        }else {
+                            return "-";
+						}
+                    }
+		        },
+		        {
+		            field: 'type',
+		            title: '文件类型',
+                    sortable:true,
+                    formatter: function(value, row, index) {
+                        if (row.folderFlag) {
+							var html = "<div title='文件夹'>文件夹</div>";
+                            return html;
+                        }else {
+							if(value == "-"){
+								return '-';
+							}
+							var showname = value;
+							if (value.length > 15) {
+								showname = value.substr(0,14)+"...";
+							}
+							var html = "<div title='"+value+"'>"+showname+"</div>";
+							return html;
+                        }
+                    }
+		        },
+		        {
+		            field: 'updateDate',
+		            title: '修改时间',
+                    sortable:true
+		        },
+		        {
+		            title: '操作',
+		            align: 'left',
+                    cellStyle: function (value, row, index) {
+                        return {css: {"overflow": "hidden", "text-overflow": "ellipsis", "white-space": "nowrap"}}
+                    },
+                    formatter: function(value, row, index) {
+                        var actions = [];
+                        var fileType = row.type;
+
+                        var imgFlag = fileType != null && ("jpg" == fileType.toLowerCase() || "png" == fileType.toLowerCase() || "gif" == fileType.toLowerCase() || "jpeg" == fileType.toLowerCase());
+
+                        if (imgFlag) {
+                            actions.push('<a class="btn btn-success btn-xs ' + viewImgFlag + '" href="javascript:void(0)" onclick="viewImage(\'' + row.path + '\')"><i class="fa fa-leaf"></i>预览</a> ');
+                        }
+                        actions.push('<a class="btn btn-primary btn-xs ' + downloadFlag + '" href="javascript:void(0)" onclick="downloadFile(\'' + row.path + '\',\''+row.name+'\','+row.folderFlag+')"><i class="fa fa-download"></i>下载</a> ');
+                        if (!row.folderFlag) {
+                            //不是文件夹的时候增加重命名功能
+                            actions.push('<a class="btn btn-info btn-xs ' + RenameFlag + '" href="javascript:void(0)" onclick="renameFile(\''+row.name+'\')"><i class="fa fa fa-pencil"></i>重命名</a> ');
+                        }
+                        actions.push('<a class="btn btn-danger btn-xs ' + removeFlag + '" href="javascript:void(0)" onclick="delFile(\'' + row.path + '\',\''+row.name+'\')"><i class="fa fa-trash-o"></i>删除</a> ');
+
+					//20220330增加卡片试图相关数据写入
+					//	自适应重写数据的时候如果是第一行数据将预览视图清空
+						var showname = row.name;
+						if (showname.length > 15) {
+							showname = showname.substr(0,14)+"...";
+						}
+						if(index==0){
+                            $("#customViewRowDiv").html("");
+                        }
+						var customViewHtml = "";
+                        customViewHtml += "<div class=\"col-sm-2\" style=\"height: 200px\">";
+                        customViewHtml += "<div class=\"ibox-tools\"  style=\"margin-right:20px\">";
+                        customViewHtml += "<a class=\"dropdown-toggle\" data-toggle=\"dropdown\" href=\"#\">";
+                        customViewHtml += "<i class=\"fa fa-gear\"></i>";
+                        customViewHtml += "</a>";
+                        customViewHtml += "<ul class=\"dropdown-menu dropdown-user\">";
+                        customViewHtml += "<li><a href=\"javascript:void(0)\" onclick=\"delFile('" + row.path + "','"+row.name+"')\">删除</a>";
+                        customViewHtml += "</li>";
+                        if (!row.folderFlag) {
+                            customViewHtml += "<li><a href=\"javascript:void(0)\" onclick=\"renameFile('"+row.name+"')\">重命名</a>";
+                            customViewHtml += "</li>";
+						}
+                        customViewHtml += "<li><a href=\"javascript:void(0)\" onclick=\"downloadFile('" + row.path + "','"+row.name+"',"+row.folderFlag+")\">下载</a>";
+                        customViewHtml += "</li>";
+                        if (imgFlag) {
+                            customViewHtml += "<li><a href=\"javascript:void(0)\" onclick=\"viewImage('" + row.path + "')\">预览</a>";
+                            customViewHtml += "</li>";
+						}
+                        customViewHtml += "</ul>";
+                        customViewHtml += "</div>";
+
+                        customViewHtml += "<div class=\"contact-box\">";
+                        customViewHtml += "<a href=\"javascript:void(0)\" ";
+                        if(row.folderFlag){
+                            customViewHtml +="ondblclick=\"fileNameClick('"+row.path+"')\"";
+						}else {
+                            if (imgFlag) {
+                                customViewHtml +="ondblclick=\"viewImage('"+row.path+"');\"";
+                            }
+						}
+                        customViewHtml +=">";
+						customViewHtml += "<div class=\"col-sm-12\">";
+                        customViewHtml += "<div class=\"text-center\">";
+                        customViewHtml += "<img alt=\"image\" style=\"display: block;max-width: 100%;height: 120px;\" src=\"";
+
+                        if (row.folderFlag) {
+                            customViewHtml += folderImg;
+                        }else {
+							if (imgFlag) {
+                                customViewHtml+="/project/publishCmsFiles/getImageOutputStream?imgPath="+row.path;
+                            }else {
+                                customViewHtml += fileImg;
+                            }
+                        }
+                        customViewHtml += "\" >";
+                        customViewHtml += "<div style=\"height: 10px\" class=\"m-t-xs font-bold\"";
+                        customViewHtml += "title=\"";
+                        customViewHtml += row.name;
+                        customViewHtml += "\" >";
+						var filename = showname;
+						if (row.sizeName != null) {
+							filename = showname+row.sizeName;
+						}
+						customViewHtml += filename;
+                        customViewHtml += "</div>";
+                        customViewHtml += "</div>";
+                        customViewHtml += "</div>";
+                        customViewHtml += "<div class=\"clearfix\"></div>";
+                        customViewHtml += "</a>";
+                        customViewHtml += "</div>";
+                        customViewHtml += "</div>";
+
+                        $("#customViewRowDiv").append(customViewHtml);
+
+                        return actions.join('');
+                    }
+		        }]
+		    };
+		    $.table.init(options);
+		}
+
+		//请求数据监听事件，清空预览视图
+        function responseHandler(res){
+            $.modal.closeLoading();
+			if(res.total==0){
+                $("#customViewRowDiv").html("<h1 style=\"text-align: center;\">空空如也</h1>");
+			}else {
+                $("#customViewRowDiv").html("");
+			}
+
+            //  完成之后调用方法重写顶部面包屑
+            zTreeTitleClick($("#path").val());
+        }
+
+		function rightRefresh(){
+		    $.modal.loading("数据加载中");
+            $.table.search();
+		}
+
+
+		//回车事件
+		$("#name").bind("keydown",function(e){
+			// 兼容FF和IE和Opera
+			var theEvent = e || window.event;
+			var code = theEvent.keyCode || theEvent.which || theEvent.charCode;
+			//console.log(code);
+			if (code == 13) {
+				//回车执行查询
+                $.modal.loading("数据加载中");
+				$("#search").click();
+				return false;
+			}
+		});
+
+		//获取根目录下的文件夹
+		function queryContentTree() {
+            var setting = {
+                callback: {
+                    onClick: zTreeOnClick,
+                    onExpand: myTreeOnExpand,
+                    onCollapse: myTreeOnCollapse
+                }
+			};
+            var zNodes =[];
+            $.ajax({
+                type:"post",
+                url:prefix+"/treeData",
+                dataType:"json",
+                data:{"name":$("#path").val()},
+                success:function (res) {
+                    if (res.code == 0) {
+                        var data = res.data;
+                        data.forEach(function (e, index) {
+                            var getPath = e.path.replace(/\\/g,"/");
+							var node = {id:getPath,path:getPath,name:e.name,isParent:e.folderFlag,title:e.name};
+							zNodes.push(node);
+                        });
+                        $.fn.zTree.init($("#tree"), setting, zNodes);
+                    }else {
+                        if("未登录或登录超时。请重新登录"==res.msg){
+                            window.location=ctx+"login";
+                        }else {
+                            $.modal.alertWarning("无数据");
+                        }
+                    }
+                }
+            });
+		}
+
+		//获取当前选中的文件夹下的子文件夹并渲染
+        function zTreeOnClick(event, treeId, treeNode) {
+            var treeObj = $.fn.zTree.getZTreeObj("tree");
+            //获取当前选中的nodes
+            var nodes = treeObj.getSelectedNodes();
+            var path = treeNode.path;
+            //放置查询参数
+			$("#path").val(path);
+            var children = [];
+            $.ajax({
+                type:"post",
+                url:prefix+"/treeData",
+                dataType:"json",
+                data:{
+                    name : path
+				},
+                success:function (res) {
+                    if (res.code == 0) {
+                        var data = res.data;
+                        data.forEach(function (e, index) {
+                            //子级文件夹需要由phoenix_crm/export/---->export/
+                            var getPath = e.path.replace(/\\/g,"/");
+                            var node = {id:getPath,path:getPath,name:e.name,isParent:e.folderFlag,title:e.name};
+                            children.push(node);
+                        });
+                        //给当前选中的nodes动态附子级
+                        nodes[0].children = children;
+                        //更新当前选中的nodes
+                        treeObj.updateNode(nodes[0]);
+                        //展开当前选中的nodes，子级不展开
+                        treeObj.expandNode(nodes[0], true, false, true);
+                        //刷新tree赋予子级点击事件
+                        treeObj.refresh();
+                        //模拟点击搜索按钮
+                        $.modal.loading("数据加载中");
+						$.table.search();
+                    }else {
+                        if("未登录或登录超时。请重新登录"==res.msg){
+                            window.location=ctx+"login";
+						}else {
+                            $.modal.alertWarning("无数据");
+						}
+
+                    }
+                }
+            });
+        //  完成之后调用方法重写顶部面包屑
+            zTreeTitleClick(path);
+        };
+
+		//树左边加号展开点击事件
+        function myTreeOnExpand(event, treeId, treeNode) {
+            var treeObj = $.fn.zTree.getZTreeObj("tree");
+            //获取当前选中的nodes
+            var path = treeNode.path;
+            //放置查询参数
+            $("#path").val(path);
+            var children = [];
+            $.ajax({
+                type:"post",
+                url:prefix+"/treeData",
+                dataType:"json",
+                data:{
+                    name : path
+                },
+                success:function (res) {
+                    if (res.code == 0) {
+                        var data = res.data;
+                        data.forEach(function (e, index) {
+                            //子级文件夹需要由phoenix_crm/export/---->export/
+                            var getPath = e.path.replace(/\\/g,"/");
+                            var node = {id:getPath,path:getPath,name:e.name,isParent:e.folderFlag,title:e.name};
+                            children.push(node);
+                        });
+                        //给当前选中的nodes动态附子级
+                        treeNode.children = children;
+                        //更新当前选中的nodes
+                        treeObj.updateNode(treeNode);
+                        //展开当前选中的nodes，子级不展开
+                        treeObj.expandNode(treeNode, true, false, true);
+                        //刷新tree赋予子级点击事件
+                        treeObj.refresh();
+                        //模拟点击搜索按钮
+                        $.modal.loading("数据加载中");
+                        $.table.search();
+                    }else {
+                        if("未登录或登录超时。请重新登录"==res.msg){
+                            window.location=ctx+"login";
+                        }else {
+                            $.modal.alertWarning("无数据");
+                        }
+                    }
+                }
+            });
+            //  完成之后调用方法重写顶部面包屑
+            zTreeTitleClick(path);
+        }
+
+        //树左边减号点击事件
+        function myTreeOnCollapse(event, treeId, treeNode) {
+            //获取当前选中的nodes
+            var path = treeNode.path;
+            //放置查询参数
+            $("#path").val(path);
+            //  完成之后调用方法重写顶部面包屑
+            zTreeTitleClick(path);
+            $.modal.loading("数据加载中");
+            $.table.search();
+        }
+
+
+        //点击打开上传页面
+        function streamUpload(){
+            $.modal.open("文件上传",ctx + "project/stream/file?param1=local&param3="+$('#platform').val()+"&param2="+encodeURIComponent(encodeURIComponent($("#path").val())));
+		}
+        //点击打开上传页面
+        function webUpload(){
+
+            layer.open({
+                type: 2,
+                area: [ '1000px', ($(window).height() - 50)+"px"],
+                fix: false,
+                //不固定
+                maxmin: true,
+                shade: 0.3,
+                title: "文件上传",
+                content: ctx + "project/webUpload?platform="+$('#platform').val()+"&path="+encodeURIComponent(encodeURIComponent($("#path").val())),
+                btn: ['确定', '关闭'],
+                // 弹层外区域关闭
+                shadeClose: false,
+                btn1: function(index, layero) {
+                    var iframeWin = layero.find('iframe')[0];
+                    iframeWin.contentWindow.submitHandler();
+                },
+                btn2: function(index, layero) {
+                    var iframeWin = layero.find('iframe')[0];
+                    iframeWin.contentWindow.closeHandler();
+                    return false;
+                },
+                cancel: function(index, layero) {
+                    var iframeWin = layero.find('iframe')[0];
+                    iframeWin.contentWindow.closeHandler();
+                    return false;
+                },
+            });
+        }
+
+		//平台变更监听事件
+        function treePlatformMonitor(){
+            $.modal.loading("数据加载中");
+		    //初始化树，写入path，重新搜索table
+            $('#path').val($('#treePlatform').val());
+            $('#platform').val($('#treePlatform').find("option:selected").attr("platform"));
+            //顶部title重写
+        	var html = '<a href="#" onclick="fileNameClickOther(\'' ;
+            html += $('#treePlatform').val();
+            html += '\',this);" >根目录</a>';
+            $("#showTitle").html(html);
+            $("#tree").html("");
+
+            queryContentTree();
+            //重置搜索条件后搜索
+            $.form.reset();
+            $.table.search();
+		}
+
+        //列表头区域点击事件
+        function fileNameClickOther(title,aThis) {
+            $(aThis).nextAll().remove();
+            fileNameClick(title);
+        }
+
+        //文件夹点击事件
+        function fileNameClick(path) {
+            $("#path").val(path);
+			$("#filterFlag").val("no");
+            //$.table.search();
+            refreshMyTree(path);
+        }
+
+        //树点击重置顶部title面包屑方法
+        function zTreeTitleClick(path){
+            path = path.replace(/\\/g,"/");
+            var platformPath = $('#treePlatform').val();
+            var replace = path.replace(platformPath,"");
+            var replaceList = replace.split("/");
+
+            var html = '<a href="#" onclick="fileNameClickOther(\'' ;
+            html += platformPath;
+            html += '\',this);" >根目录</a>';
+
+            for(var i=0;i<replaceList.length;i++){
+                var name = replaceList[i];
+                if(name==""){
+                    continue;
+                }
+                platformPath += "/"+name;
+                html += "<i>&nbsp;/&nbsp;</i>";
+                html += '<a href="#" onclick="fileNameClickOther(\'' ;
+                html += platformPath;
+                html += '\',this);" >';
+                html += name;
+                html += '</a>';
+            }
+
+            $("#showTitle").html(html);
+		}
+
+		//创建文件夹操作
+        function createFolder(){
+			var platform = $('#platform').val();
+			var path = encodeURIComponent(encodeURIComponent($("#path").val()));
+			layer.prompt({title: '创建文件夹',value: "", formType: 0}, function(name, index){
+				//^[a-zA-Z]:(((\\(?! )[^/:*?<>\""|\\]+)+\\?)|(\\)?)\s*$
+				var regex = /.*[/\\\\:*?|].*/;
+				//存在返回true，不存在返回false
+				var flag = regex.test(name);
+                if (flag) {
+                    layer.close(index);
+                    createFolder();
+                    $.modal.alertWarning("文件夹包含非法字符,请重新输入");
+                    return false;
+                }
+
+                if (/[\u4e00-\u9fa5]/.test(name)) {
+                    layer.close(index);
+                    createFolder();
+                    $.modal.alertWarning("文件夹包含中文,请重新输入");
+                    return false;
+                }
+
+				if (name.length > 30) {
+					layer.close(index);
+					createFolder();
+					$.modal.alertWarning("文件夹名称上限30字符");
+					return false;
+				}
+
+                var formData = {"path":path,"name":name,"platform":platform};
+                var loadIndex;
+                var config = {
+                    url: prefix + "/createFolder",
+                    type: "post",
+                    dataType: "json",
+                    data: formData,
+                    beforeSend: function () {
+                        loadIndex = layer.load(1, {
+                            shade: [0.1,'#fff'] //0.1透明度的白色背景
+                        });
+                        $.modal.disable();
+                    },
+                    success: function(result) {
+                        layer.close(loadIndex);
+                        if (result.code == web_status.SUCCESS) {
+                            $.modal.close();
+                            $.modal.msgSuccess(result.msg);
+                            refreshMyTree($("#path").val());
+
+                            layer.close(index);
+                            $.modal.enable();
+                        } else {
+                            if("未登录或登录超时。请重新登录"==result.msg){
+                                window.location=ctx+"login";
+                            }else {
+                                layer.close(index);
+                                createFolder();
+                                $.modal.alertError(result.msg);
+                            }
+
+                        }
+                    }
+                };
+                $.ajax(config)
+			});
+            //$.modal.open('创建文件夹',prefix + "/createFolder/?platform="+$('#platform').val()+"&path="+encodeURIComponent(encodeURIComponent($("#path").val())),800,300);
+        }
+
+        //右侧各种点击事件更新树
+        function refreshMyTree(path){
+            $.modal.loading("数据加载中");
+
+            var treeObj = $.fn.zTree.getZTreeObj("tree");
+            //判断如果是根目录的话则直接重新初始化树
+			if($('#treePlatform').val()==path){
+                queryContentTree();
+				//根目录时需要列表页初始化
+				$.table.search();
+				$("#filterFlag").val("");
+                return;
+			}
+
+            var getNode = treeObj.getNodeByParam("path",path);
+            //放置查询参数
+            var children = [];
+            $.ajax({
+                type:"post",
+                url:prefix+"/treeData",
+                dataType:"json",
+                data:{
+                    name : path
+                },
+                success:function (res) {
+                    if (res.code == 0) {
+                        var data = res.data;
+                        data.forEach(function (e, index) {
+                            //子级文件夹需要由phoenix_crm/export/---->export/
+                            var getPath = e.path.replace(/\\/g,"/");
+                            var node = {id:getPath,path:getPath,name:e.name,isParent:e.folderFlag,title:e.name};
+                            children.push(node);
+                        });
+						if(children.length>0){
+                            getNode.isParent = true;
+						}else {
+                            getNode.isParent = false;
+                        }
+                        //给当前选中的nodes动态附子级
+                        getNode.children = children;
+                        //更新当前选中的nodes
+                        treeObj.updateNode(getNode);
+                        //展开当前选中的nodes，子级不展开
+                        treeObj.expandNode(getNode, true, false, true);
+                        //刷新tree赋予子级点击事件
+                        treeObj.refresh();
+                        //模拟点击搜索按钮
+                        $.table.search();
+						$("#filterFlag").val("");
+                    }else {
+                        if("未登录或登录超时。请重新登录"==res.msg){
+                            window.location=ctx+"login";
+                        }else {
+                            $.modal.alertWarning("无数据");
+                        }
+
+                    }
+                }
+            });
+        }
+
+
+        //批量下载
+        function batchDownloadFiles() {
+            //获取选中的行的状态，如果有已经激活的则提示不能进行激活
+            var paths = $.table.selectColumns('path');
+            if (paths.length == 0) {
+                $.modal.alertWarning("请选择要下载的数据");
+                return;
+            }
+            $.modal.confirm("确认要下载选中的数据吗?", function() {
+                location.href = prefix + "/batchDownloadFiles?platform="+$('#platform').val()+"&filePaths=" + paths.join();
+            });
+        }
+
+        //预览图片
+        function viewImage(filePath) {
+            var url = prefix + '/viewImage?filePath=' + filePath;
+            $.modal.open("图片预览", url , '600', '500',function (index) {
+				layer.close(index);
+			});
+        }
+
+
+        //下载文件
+        function downloadFile(path,name,folderFlag) {
+            var confir = "文件";
+            if(folderFlag){
+                confir = "目录";
+            }
+            $.modal.confirm("确认要下载"+ confir + name + "吗?", function() {
+                location.href = prefix + "/downloadFile?path=" + path+"&platform="+$('#platform').val();
+                layer.msg('文件下载中，请稍后…', { icon: 1 });
+            });
+        }
+
+        //删除文件
+        function delFile(path,name) {
+            $.modal.confirm("确认要删除文件或者文件夹吗?", function() {
+                var url =  prefix + "/delFile";
+                var data = { "path": path ,"platform":$('#platform').val()};
+                $.operate.submit(url, "post", "json", data,function () {
+                    //里边包含搜索
+                    refreshMyTree($('#path').val());
+                });
+            });
+        }
+
+
+        //查看当前目录的历史版本
+        function getHistoricVersion(){
+            $.modal.openTab('历史版本',prefix + "/getHistoricVersion/?platform="+$('#platform').val()+"&path="+$("#path").val());
+        }
+
+
+        //重命名
+        function renameFile(name){
+            // $.modal.open('创建文件夹',prefix + "/renameFile/?platform="+$('#platform').val()+"&name="+name+"&path="+$("#path").val(),300,150);
+            layer.prompt({title: '输入新名称',value: name, formType: 0}, function(newName, index){
+
+                if (newName == name) {
+                    layer.close(index);
+                    renameFile(name);
+                    $.modal.alertWarning("新名称和当前名称一致");
+                    return false;
+                }
+
+				if (newName.length > 30) {
+					layer.close(index);
+					renameFile(name);
+					$.modal.alertWarning("文件名上限30字符");
+					return false;
+				}
+
+                var formData = {"path":$("#path").val(),"pastName":name,"name":newName,"platform":$("#platform").val()};
+                var loadIndex;
+                var config = {
+                    url: prefix + "/renameFile",
+                    type: "post",
+                    dataType: "json",
+                    data: formData,
+                    beforeSend: function () {
+                        loadIndex = layer.load(1, {
+                            shade: [0.1,'#fff'] //0.1透明度的白色背景
+                        });
+                        $.modal.disable();
+                    },
+                    success: function(result) {
+                        layer.close(loadIndex);
+                        if (result.code == web_status.SUCCESS) {
+                            $.modal.close();
+                            $.modal.msgSuccess(result.msg);
+                            $.modal.loading("数据加载中");
+                            $.table.refresh();
+
+                            layer.close(index);
+                            $.modal.enable();
+                        } else if (result.code == web_status.WARNING) {
+                            layer.close(index);
+                            renameFile(name);
+                            $.modal.alertWarning(result.msg);
+                        }  else {
+                            if("未登录或登录超时。请重新登录"==result.msg){
+                                window.location=ctx+"login";
+                            }else {
+                                layer.close(index);
+                                renameFile(name);
+                                $.modal.alertError(result.msg);
+                            }
+
+                        }
+                    }
+                };
+                $.ajax(config)
+                // layer.msg('演示完毕！您的口令：'+ pass +'<br>您最后写下了：'+text);
+            });
+        }
+
+        //切换列表和块的方法
+        function toggleCustomView(){
+            if($('#customViewDiv').is(':hidden')){
+                $('#customViewDiv').show();
+                $('#bootstrap-table').hide();
+            }else{
+                $('#customViewDiv').hide();
+                $('#bootstrap-table').show();
+            }
+		}
+
+		//顶部批量删除按钮
+        function topBatchDelFiles() {
+            var paths = $.table.selectColumns('path');
+            if (paths.length == 0) {
+                $.modal.alertWarning("请选择要删除的数据");
+                return;
+            }
+            $.modal.confirm("确认要删除选中的文件或者文件夹吗?", function() {
+                var url =  prefix + "/delFile";
+                var data = { "path": paths.join() ,"platform":$('#platform').val()};
+                $.operate.submit(url, "post", "json", data,function () {
+                    refreshMyTree($('#path').val());
+                });
+            });
+
+        }
+
+        //一键复制路径
+        function copyPath() {
+            var path = $("#path").val();//获取文本
+            //替换当前平台前缀为空
+            path = path.replace(/\\/g,"/");
+            var platformPath = $('#treePlatform').val();
+            var replacePath = path.replace(platformPath,"");
+
+            var flag = copyText(replacePath); //传递文本
+            flag ? layer.msg('复制成功！', {icon: 1}) : layer.msg('复制失败！', {icon: 2});
+        }
+
+        function copyText(text) {
+            var textarea = document.createElement("input");//创建input对象
+            var currentFocus = document.activeElement;//当前获得焦点的元素
+            document.body.appendChild(textarea);//添加元素
+            textarea.value = text;
+            textarea.focus();
+            if(textarea.setSelectionRange)
+                textarea.setSelectionRange(0, textarea.value.length);//获取光标起始位置到结束位置
+            else
+                textarea.select();
+            try {
+                var flag = document.execCommand("copy");//执行复制
+            } catch(eo) {
+                var flag = false;
+            }
+            document.body.removeChild(textarea);//删除元素
+            currentFocus.focus();
+            return flag;
+        }
+
+        //编辑跳转
+        function editJump() {
+            var path = $("#path").val();//获取文本
+            //替换当前平台前缀为空
+            path = path.replace(/\\/g,"/");
+            var platformPath = $('#treePlatform').val();
+            var replacePath = path.replace(platformPath,"");
+
+            layer.prompt({title: '跳转路径',value: replacePath, formType: 2, btn:['GO','取消'],area:['430px','36px']}, function(newPath, index){
+
+                newPath = newPath.replace(/\\/g,"/");
+                if ($.common.endWith(newPath,"/")) {
+                    layer.close(index);
+                    editJump();
+                    $.modal.alertWarning("路径不能以/结尾");
+                    return false;
+                }
+                if ( !$.common.startWith(newPath,"/")) {
+                    layer.close(index);
+                    editJump();
+                    $.modal.alertWarning("路径必须以/开始");
+                    return false;
+                }
+                if ( newPath.indexOf("//") != -1) {
+                    layer.close(index);
+                    editJump();
+                    $.modal.alertWarning("路径不能包含//");
+                    return false;
+                }
+
+                var formData = {"path":platformPath+newPath};
+                var loadIndex;
+                var config = {
+                    url: prefix + "/checkPathExist",
+                    type: "post",
+                    dataType: "json",
+                    data: formData,
+                    beforeSend: function () {
+                        loadIndex = layer.load(1, {
+                            shade: [0.1,'#fff'] //0.1透明度的白色背景
+                        });
+                        $.modal.disable();
+                    },
+                    success: function(result) {
+                        layer.close(loadIndex);
+                        if (result.code == web_status.SUCCESS) {
+                            $.modal.close();
+                            //存在则跳转
+                            editJumpPath(platformPath + newPath);
+
+                            layer.close(index);
+                            $.modal.enable();
+                        } else if (result.code == web_status.WARNING) {
+                            layer.close(index);
+                            editJump();
+                            $.modal.alertWarning(result.msg);
+                        }  else {
+                            if("未登录或登录超时。请重新登录"==result.msg){
+                                window.location=ctx+"login";
+                            }else {
+                                layer.close(index);
+                                editJump();
+                                $.modal.alertError(result.msg);
+                            }
+                        }
+                    }
+                };
+                $.ajax(config);
+            });
+        }
+
+
+        function editJumpPath(path){
+            $("#path").val(path);
+            $("#filterFlag").val("no");
+
+            $.modal.loading("数据加载中");
+
+            path = path.replace(/\\/g,"/");
+            var platformPath = $('#treePlatform').val();
+            var replace = path.replace(platformPath,"");
+            var replaceList = replace.split("/");
+            var thisPath = platformPath;
+
+            for(var i=0;i<replaceList.length;i++){
+
+                var name = replaceList[i];
+                if(name==""){
+                    continue;
+                }
+                thisPath = thisPath + "/" + name;
+                jumpPathRefreshMyTree(thisPath);
+                if(i==replaceList.length-1){
+                    $.table.search();
+				}
+            }
+        }
+
+        //手动输入路径跳转的方式
+        function jumpPathRefreshMyTree(path){
+
+            var treeObj = $.fn.zTree.getZTreeObj("tree");
+            var getNode = treeObj.getNodeByParam("path",path);
+            //放置查询参数
+            var children = [];
+            $.ajax({
+                type:"post",
+                url:prefix+"/treeData",
+                dataType:"json",
+                async:false,
+                data:{
+                    name : path
+                },
+                success:function (res) {
+                    if (res.code == 0) {
+                        var data = res.data;
+                        data.forEach(function (e, index) {
+                            //子级文件夹需要由phoenix_crm/export/---->export/
+                            var getPath = e.path.replace(/\\/g,"/");
+                            var node = {id:getPath,path:getPath,name:e.name,isParent:e.folderFlag,title:e.name};
+                            children.push(node);
+                        });
+                        if(children.length>0){
+                            getNode.isParent = true;
+                        }else {
+                            getNode.isParent = false;
+                        }
+                        //给当前选中的nodes动态附子级
+                        getNode.children = children;
+                        //更新当前选中的nodes
+                        treeObj.updateNode(getNode);
+                        //展开当前选中的nodes，子级不展开
+                        treeObj.expandNode(getNode, true, false, true);
+                        //刷新tree赋予子级点击事件
+                        treeObj.refresh();
+                        //模拟点击搜索按钮
+                        $("#filterFlag").val("");
+                    }else {
+                        if("未登录或登录超时。请重新登录"==res.msg){
+                            window.location=ctx+"login";
+                        }else {
+                            $.modal.alertWarning("无数据");
+                        }
+                    }
+                }
+            });
+        }
+
+	</script>
+</body>
+</html>

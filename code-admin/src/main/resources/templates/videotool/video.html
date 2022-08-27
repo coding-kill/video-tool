@@ -13,6 +13,9 @@
     <!--<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mdui@1.0.0/dist/css/mdui.min.css"/>-->
     <!--<script src="https://cdn.jsdelivr.net/npm/mdui@1.0.0/dist/js/mdui.min.js"></script>-->
     <!--<script src="https://cdn.bootcss.com/jquery/2.1.4/jquery.min.js"></script>-->
+    <link th:href="@{/mytool/css/mdui.min.css}" rel="stylesheet"/>
+    <script th:src="@{/mytool/js/mdui.min.js}"></script>
+    <script th:src="@{/mytool/js/jquery.min.js}"></script>
 </head>
 <body class="mdui-theme-primary-indigo mdui-theme-accent-pink">
 <style>
@@ -84,7 +87,6 @@
         <div class="down mdui-text-center"></div>
     </div>
 </main>
-<div th:include="include :: footer"></div>
 <script th:inline="javascript">
 
     var ctx = [[@{/}]];
@@ -95,22 +97,25 @@
         let regex = /http[s]?:\/\/[\w.]+[\w\/]*[\w.]*\??[\w=&:\-\+\%]*[/]*/;
         var v =  data.match(regex)[0];
 
-        $.ajax({
+        var config = {
             url: ctx+"video/getVideoInfo?url="+v,
             type: "get",
             dataType: "json",
             data: "",
             success: function(result) {
-
                 if (result.code == 0 ) {
-                    $.modal.alert('解析成功');
-                    $(".down").html('<h4>'+result.data.title+' </h4><a class="mdui-btn mdui-btn-raised" href="'+result.data.cover+'" target="_blank" download="video">下载封面</a><a class="mdui-btn mdui-btn-raised" href="'+result.data.url+'" rel="noreferrer" target="_blank" download="video">下载视频</a>');
+                    mdui.snackbar({
+                        message: '解析成功'
+                    });
+                    $(".down").html('<h4>'+result.data.title+' </h4><a class="mdui-btn mdui-btn-raised" href="'+result.data.cover+'" target="_blank" download="video">下载封面</a><a class="mdui-btn mdui-btn-raised" href="'+result.data.url+'" target="_blank"  rel="noreferrer"  download="video">下载视频</a>');
                 } else {
-                    $.modal.alertError('解析失败,视频不存在或者链接不正确');
+                    mdui.snackbar({
+                        message: '解析失败,视频不存在或者链接不正确'
+                    });
                 }
             }
-        });
-
+        };
+        $.ajax(config)
     }
 </script>
 </body>

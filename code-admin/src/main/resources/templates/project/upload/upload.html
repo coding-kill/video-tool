@@ -1,0 +1,334 @@
+﻿<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<head>
+    <meta charset="utf-8">
+    <title>文件上传</title>
+    <link th:href="@{/web-upload/css/demo.css}" rel="stylesheet" type="text/css"/>
+    <link th:href="@{/web-upload/css/uploader.all.css}" rel="stylesheet" type="text/css"/>
+    <!--<link th:href="@{/stream/css/stream-v1.css}" rel="stylesheet" type="text/css"/>-->
+    <th:block th:include="include :: header('文件上传')" />
+</head>
+
+<body class="white-bg">
+
+<div class="wrapper wrapper-content animated fadeInRight ibox-content">
+    <form class="form-horizontal m">
+        <input type="hidden" id="platform" name="platform" th:value="${platform}">
+        <input type="hidden" id="path" name="path" th:value="${path}">
+        <div class="form-group">
+            <label class="col-sm-1 control-label"></label>
+            <div class="col-sm-9">
+                <span><font color="red">如需混淆，请先打开对应混淆类型开关再选择文件</font></span>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-sm-2 control-label" style="width: 18%">css混淆：</label>
+            <div class="col-sm-2">
+                <label class="toggle-switch switch-solid">
+                    <input type="checkbox" id="cssparam" checked=""> <span></span>
+                </label>
+            </div>
+            <label class="col-sm-2 control-label">js混淆：</label>
+            <div class="col-sm-2">
+                <label class="toggle-switch switch-solid">
+                    <input type="checkbox" id="jsparam" checked=""> <span></span>
+                </label>
+            </div>
+        </div >
+        <div class="form-group">
+            <label class="col-sm-2 control-label" style="width: 16%">备注：</label>
+            <div class="col-sm-6">
+                <input id="remark" name="remark" placeholder="请在选择文件之前填写" class="form-control"/>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="col-sm-1 control-label"></label>
+            <div class="col-sm-10">
+                <div>
+                    <a id="upload-one-target" onclick="oneFileMonitor()" class="btn btn-w-m btn-primary btn-sm">选择文件并上传</a>
+                    <a id="upload-folder-target" onclick="folderMonitor()" class="btn btn-w-m btn-primary btn-sm">选择文件夹并上传</a>
+                </div>
+                <div id="upload-view" style="margin-top: 5px"></div>
+                <br>
+                <a class="btn btn-primary btn-rounded btn-sm" onclick="showFilesQueue()"><i id="showBtn">显示日志详情</i>&nbsp;</a>
+                <a class="btn btn-primary btn-rounded btn-sm" onclick="showErrorLog()"><i id="showErrorBtn">显示错误日志详情</i>&nbsp;</a>
+                <div id="errorLog" style="display: none"></div>
+                <div id="log" style="display: none"></div>
+            </div>
+        </div>
+    </form>
+</div>
+
+
+<script type="text/javascript" th:src="@{/web-upload/js/Q.js}" ></script>
+<script type="text/javascript" th:src="@{/web-upload/js/spark-md5.js}" ></script>
+<script type="text/javascript" th:src="@{/web-upload/js/Q.md5File.js}" ></script>
+<script type="text/javascript" th:src="@{/web-upload/js/Q.Uploader.js}" ></script>
+<script type="text/javascript" th:src="@{/web-upload/js/Q.Uploader.slice.js}" ></script>
+<script type="text/javascript" th:src="@{/web-upload/js/Q.Uploader.UI.File.js}" ></script>
+<script th:src="@{/js/jquery.min.js}"></script>
+<div th:include="include::footer"></div>
+
+<script type="text/javascript">
+    window.UPLOAD_URL = "/project/webUpload/upload/";
+
+    function log(msg) {
+        document.getElementById("log").innerHTML += (msg != undefined ? msg : "") + "<br />";
+    }
+    function logError(msg) {
+        document.getElementById("errorLog").innerHTML += (msg != undefined ? msg : "") + "<br />";
+    }
+
+    //简易hash计算
+    function computeHash(file, callback) {
+        var blobSlice = File.prototype.slice || File.prototype.mozSlice || File.prototype.webkitSlice,
+            spark = new SparkMD5.ArrayBuffer();
+        var fr = new FileReader(),
+            size = file.size,
+            chunkSize = 100 * 1024,
+            startTime = Date.now(),
+            bufferStart = 0,
+            bufferEnd = 0;
+
+        spark.reset();
+
+        fr.onload = function (e) {
+            spark.append(e.target.result);
+            if (bufferEnd >= size) return callback && callback(spark.end(), Date.now() - startTime);
+            var middleSize = Math.floor(size / 2);
+            if (bufferEnd < middleSize) {
+                //计算中间100KB
+                loadBuffer(middleSize - chunkSize / 2, middleSize + chunkSize / 2);
+            } else {
+                //计算尾部100KB
+                loadBuffer(size - chunkSize, size);
+            }
+        };
+        fr.onerror = callback;
+        var loadBuffer = function (start, end) {
+            bufferStart = start;
+            bufferEnd = end;
+            fr.readAsArrayBuffer(blobSlice.call(file, start, end));
+        };
+        loadBuffer(0, size <= 300 * 1024 ? size : chunkSize);
+    }
+
+
+
+    var allJobFinshFlag = true;
+
+    var Uploader = Q.Uploader;
+    var q = new Uploader({
+        url: UPLOAD_URL,
+        //urlForQuery: UPLOAD_URL,  //秒传或分片上传查询接口，未指定时默认使用上传接口
+
+        target: [document.getElementById("upload-folder-target"),document.getElementById("upload-one-target")],
+        view: document.getElementById("upload-view"),
+        workerThread: 6,
+        isDir: true,
+
+        isSlice: true,                  //是否启用分片上传，若为true，则isQueryState和isMd5默认为true
+        chunkSize: 4 * 1024 * 1024,     //默认分片大小为2MB
+        //isQueryState: true,           //是否查询文件状态（for 秒传或续传）
+        sliceRetryCount: 1,             //分片上传失败重试次数,默认为2
+
+        //每次上传都会发送的参数(POST方式)
+        data: {
+            platform: $("#platform").val(),
+            path: encodeURIComponent(encodeURIComponent($("#path").val())),
+        },
+        on: {
+            //添加之前触发
+            add: function (task) {
+                allJobFinshFlag = false;
+                log(task.name + ": 已添加!");
+                if(task.size==0){
+                    logError(task.name + ": 该文件为空文件，上传失败！");
+                }
+            },
+            select: function(task){
+                if($("#remark").val()==null||$("#remark").val()==""){
+                    myAlert("请先输入备注");
+                    return false;
+                }
+
+                if($("#remark").val().length > 30){
+                    myAlert("备注不能超过30个字，请重新输入");
+                    return false;
+                }
+
+                q.data.remark=$("#remark").val();
+                q.data.jsparam=$("input[id='jsparam']").is(':checked') == true ? 1 : 0;
+                q.data.cssparam=$("input[id='cssparam']").is(':checked') == true ? 1 : 0;
+            },
+            //任务移除后触发
+            remove: function (task) {
+                log(task.name + ": 已移除!");
+            },
+
+            //上传之前触发
+            upload: function (task) {
+                //可针对单独的任务配置参数(POST方式)
+                task.data = { name: Date.now() + task.ext };
+            },
+            //自己实现hash计算，查询状态之前触发（for 秒传或续传）
+            hashAsync: function (task, callback) {
+                computeHash(task.file, function (hash, time) {
+                    task.hash = hash + task.size;
+                    log(task.name + ' hash time: ' + time + 'ms');
+                    callback();
+                });
+            },
+
+            //秒传查询之前
+            beforeQuery: function (task) {
+                log(task.name + ": " + task.queryUrl);
+            },
+
+            //秒传查询之后
+            query: function (task) {
+                //服务器返回的json数据 eg: { "code": 0, data: {} }
+                var json = task.json,
+                    data = json ? json.data : undefined;
+                if (data) {
+                    //秒传成功
+                    if (data.ok || data.url) return -1;
+                    //从指定位置开始上传
+                    return data.start;
+                }
+                //从0开始上传
+                return 0;
+            },
+            //分片上传之前触发（for 秒传或续传）
+            sliceUploadAsync: function (task, callback) {
+                log(task.name + ": 上传分片 " + task.sliceIndex + " / " + task.sliceCount);
+                callback();
+            },
+
+            //上传完成后触发
+            complete: function (task) {
+                if (task.state != Uploader.COMPLETE){
+                    logError(task.name + " : " + Uploader.getStatusText(task.state) + "！");
+                    return log(task.name + " : " + Uploader.getStatusText(task.state) + "！");
+                }
+                if (task.queryOK){
+                    log(task.name + " : 秒传成功！");
+                }
+                var json = task.json;
+                if (!json){
+                    log(task.name + " : 服务器未返回正确的数据！<br />");
+                } else {
+                    log(task.name + " : 服务器返回 " + (task.response || ""));
+                }
+                log();
+
+                if (this.index >= this.list.length) {
+
+
+                //  最后一组线程的时候判断本组所有线程的完成状态，都为完成的时候提示完成。
+                    var finishFlag = true;
+                    for(var i=1;i<=q.workerThread;i++){
+                        if(q.list[this.index-i]== undefined){
+                            continue;
+                        }
+                        if(q.list[this.index-i].state!=2){
+                            finishFlag =false;
+                        }
+                    }
+                    if(finishFlag){
+                        myAlert("所有上传任务完成");
+                        //所有任务上传完成
+                        log("所有任务上传完成：" + new Date() + "<br />");
+                        allJobFinshFlag = true;
+                    }
+                }
+            }
+        }
+    });
+
+    //文件夹上传按钮点击事件
+    function folderMonitor(){
+        q. isDir = true;
+    }
+    //文件上传按钮点击事件
+    function oneFileMonitor(){
+        q. isDir = false;
+    }
+
+    //回调函数
+    function submitHandler() {
+        if(windowFlag){
+            return false;
+        }
+        if(!allJobFinshFlag){
+            $.modal.confirm("上传任务还未全部完成，确认关闭页面?", function() {
+                commonUptadeParent();
+            });
+        }else {
+            commonUptadeParent();
+        }
+    }
+
+    function closeHandler(){
+        if(windowFlag){
+            return false;
+        }
+        if(!allJobFinshFlag){
+            $.modal.confirm("上传任务还未全部完成，确认关闭页面?", function() {
+                commonUptadeParent();
+            });
+        }else {
+            commonUptadeParent();
+        }
+    }
+
+    function commonUptadeParent(){
+        $.modal.close();
+        parent.$.table.refresh();
+        parent.refreshMyTree($("#path").val());
+    }
+
+
+    //动态变更上传队列详情的高度
+    function showFilesQueue(){
+        if($('#log').is(':hidden')){
+            $("#showBtn").html("隐藏日志详情");
+            $('#log').show();
+        }else {
+            $('#log').hide();
+            $("#showBtn").html("显示错误日志");
+        }
+    }
+
+    //动态变更上传队列详情的高度
+    function showErrorLog(){
+        if($('#errorLog').is(':hidden')){
+            $('#errorLog').show();
+            $("#showErrorBtn").html("隐藏错误日志");
+        }else{
+            $('#errorLog').hide();
+            $("#showErrorBtn").html("显示错误日志");
+        }
+    }
+
+
+    var windowFlag = false;
+    function  myAlert(content) {
+        windowFlag = true;
+        layer.alert(content, {
+            icon: $.modal.icon(null),
+            title: "系统提示",
+            btn: ['确认'],
+            btnclass: ['btn btn-primary'],
+            btn1: function(index, layero) {
+                windowFlag = false;
+                layer.close(index);
+            },cancel: function(){
+                windowFlag = false;
+            }
+        });
+    }
+
+</script>
+</body>
+</html>

@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org" xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+<head>
+	<th:block th:include="include :: header('操作日志列表')" />
+	<th:block th:include="include :: select2-css"/>
+	<th:block th:include="include :: datetimepicker-css"/>
+</head>
+<body class="gray-bg">
+     <div class="container-div">
+		<div class="row">
+			<div class="col-sm-12 search-collapse">
+				<form id="formId">
+					<div class="select-list">
+						<ul>
+							<li>
+								平台：
+								<select id="platform" name="platform"  >
+									<option  value="">请选择</option>
+									<option th:each="map : ${platformList}" th:text="${map.name}" th:value="${map.platform}"></option>
+								</select>
+							</li>
+
+							<li>
+								文件名：<input type="text" name="fileName"/>
+							</li>
+
+							<li>
+								目录名：<input type="text" name="path"/>
+							</li>
+
+							<li>
+								<input name="createUser" type="hidden" id="createUser"/>
+								操作人：<input id="createUserName" name="createUserName" readonly  type="text" onclick="selectUserDeptTree('createUser','createUserName')" >
+							</li>
+
+							<li class="input-daterange input-group">
+								操作时间：
+								<input type="text" name="createStartDate" readonly id="createStartDate"/>
+								至
+								<input type="text" name="createEndDate" readonly id="createEndDate"/>
+							</li>
+
+							<li>
+								操作名称：<input type="text" name="logName"/>
+							</li>
+
+							<li>
+								<a class="btn btn-primary btn-rounded btn-sm" onclick="search1();"><i class="fa fa-search"></i>&nbsp;搜索</a>
+								<a class="btn btn-warning btn-rounded btn-sm" onclick="reset1();"><i
+										class="fa fa-refresh"></i>&nbsp;重置</a>
+							</li>
+						</ul>
+					</div>
+				</form>
+			</div>
+			
+	        <div class="btn-group-sm" id="toolbar" role="group">
+			</div>
+			<div class="col-sm-12 select-table table-striped">
+				<table id="bootstrap-table" data-mobile-responsive="true"></table>
+			</div>
+		</div>
+	</div>
+    <div th:include="include :: footer"></div>
+	 <th:block th:include="include :: select2-js"/>
+	 <th:block th:include="include :: datetimepicker-js"/>
+    <script th:inline="javascript">
+        var prefix = ctx + "project/publishOperationLog";
+
+        $(function() {
+            var options = {
+                url: prefix + "/list",
+                createUrl: prefix + "/add",
+                updateUrl: prefix + "/edit/{id}",
+                removeUrl: prefix + "/remove",
+				exportUrl: prefix + "/export",
+                modalName: "操作日志",
+		        showExport: false,
+                sortName:'id',
+                sortOrder:'desc',
+                columns: [{
+		            checkbox: true
+		        },
+				{
+					field : 'id', 
+					title : '主键id',
+					visible: false
+				},
+				{
+					field : 'platform', 
+					title : '平台',
+					sortable: true,
+                    formatter: function(value, row, index) {
+                        if (row.platform === 1) {
+                            return '腾讯云';
+                        }else if (row.platform === 2) {
+                            return '东奥在线PC';
+                        }else if (row.platform === 3) {
+                            return '东奥在线H5';
+                        }else if (row.platform === 4) {
+                            return '东奥专题PC';
+                        }else if (row.platform === 5) {
+                            return '东奥专题H5';
+                        }else {
+                            return '-';
+                        }
+                    }
+				},
+				{
+					field : 'operationType', 
+					title : '操作类型',
+					sortable: true,
+                    formatter: function(value, row, index) {
+                        if (row.operationType === 1) {
+                            return '文件夹';
+                        }else if (row.operationType === 2) {
+                            return '文件';
+                        }else{
+                            return '-';
+                        }
+                    }
+				},
+				{
+					field : 'logName', 
+					title : '操作名称',
+				},
+				{
+					field : 'path', 
+					title : '目录',
+					formatter: function(value, row, index) {
+						var showname = value;
+						if (showname == null) {
+							return "-";
+						}
+						if (showname.length > 15) {
+							showname = showname.substr(0, 14) + "...";
+						}
+						var html = "<div title='"+value+"'>"+showname+"</div>";
+						return html;
+					},
+					sortable: true
+				},
+				{
+					field : 'fileName', 
+					title : '文件名',
+					formatter: function(value, row, index) {
+						var showname = value;
+						if (showname == null) {
+							return "-";
+						}
+						if (showname.length > 15) {
+							showname = showname.substr(0, 14) + "...";
+						}
+						var html = "<div title='"+value+"'>"+showname+"</div>";
+						return html;
+					}
+				},
+				{
+					field : 'createUserName',
+					title : '操作人',
+				},
+				{
+					field : 'createDate',
+					title : '操作时间',
+					sortable: true
+				}]
+            };
+            $.table.init(options);
+
+            initLaydate();
+        });
+		/*var startDate;
+		var endDate;*/
+        function initLaydate() {
+            layui.use('laydate', function() {
+                var laydate = layui.laydate;
+                var startDate = laydate.render({
+                    elem: '#createStartDate',
+                    //max: $('#createEndDate').val(),
+                    type: 'datetime',
+                    theme: 'molv',
+                    trigger: 'click'
+                    /*done: function (value, date) {
+                        // 结束时间大于开始时间
+                        if (value !== '') {
+                            endDate.config.min.year = date.year;
+                            endDate.config.min.month = date.month - 1;
+                            endDate.config.min.date = date.date;
+                        } else {
+                            endDate.config.min.year = '';
+                            endDate.config.min.month = '';
+                            endDate.config.min.date = '';
+                        }
+                    }*/
+                });
+                var endDate = laydate.render({
+                    elem: '#createEndDate',
+                    //min: $('#createEndDate').val(),
+					//max:$.common.getNowFormatDate(),
+                    type: 'datetime',
+                    theme: 'molv',
+                    trigger: 'click'
+                    /*done: function (value, date) {
+                        // 开始时间小于结束时间
+                        if (value !== '') {
+                            startDate.config.max.year = date.year;
+                            startDate.config.max.month = date.month - 1;
+                            startDate.config.max.date = date.date;
+                        } else {
+                            startDate.config.max.year = '';
+                            startDate.config.max.month = '';
+                            startDate.config.max.date = '';
+                        }
+                    }*/
+                });
+            })
+        }
+
+        /*账户管理-新增-选择人部门树*/
+        function selectUserDeptTree(treeId,treeName) {
+            // url 可选参数， 其他参数 请自定扩展
+            // permission 权限 0.无权限 1.按照登录人数据权限
+            // showType 展示方式 0.人员 1.人员+工号
+            // checkType 选中类型 0.多选 1.单选
+            // showLevel 展示层级
+            var url = ctx + "system/userDeptTree?showType=1&showLevel=2&checkType=1";
+            var options = {
+                title: '选择部门',
+                width: "500",
+                url: url,
+                callBack: function (index, layero) {
+                    // 是否允许选父级
+                    var body = layer.getChildFrame('body', index);
+                    $("#"+treeId).val(body.find('#ids').val());
+                    $("#"+treeName).val(body.find('#names').val());
+                    layer.close(index);
+                }
+            };
+            $.modal.openOptions(options);
+        }
+
+        function reset1() {
+        	$("#createUser").val("");
+			$.form.reset();
+		}
+
+		function search1() {
+        	var start = $("#createStartDate").val();
+        	var end = $("#createEndDate").val();
+        	var startdate = new Date(start);
+        	var enddate = new Date(end);
+        	if (startdate.getTime() > enddate.getTime()) {
+				$.modal.alertError("开始时间不能大于结束时间");
+				return false;
+			}
+			$.table.search();
+		}
+
+    </script>
+</body>
+</html>

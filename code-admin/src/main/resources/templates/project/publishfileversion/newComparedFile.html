@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" type="text/css" th:href="@{/css/github.min.css}"/>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/diff2html.min.css}"/>
+    <script type="text/javascript" th:src="@{/js/diff2html-ui.min.js}"></script>
+    <script type="text/javascript" th:src="@{/js/jquery.min.js}"></script>
+</head>
+<script>
+    const diffString = [(${right})];
+
+    document.addEventListener('DOMContentLoaded', function () {
+        var targetElement = document.getElementById('diffElement');
+        var configuration = {
+            //在diff之前显示文件列表：true或false，默认值为true
+            drawFileList: true,
+            //允许切换文件摘要列表：true或false，默认值为true
+            fileListToggle: false,
+            //选择文件摘要列表是否开始可见：true或false，默认值为false
+            fileListStartVisible: false,
+            //允许切换每个文件内容：true或false，默认值为true
+            fileContentToggle: false,
+            //匹配level: 'lines'用于匹配行, 'words' 用于匹配行和单词，或者设置为'none',默认为none
+            matching: 'words',
+            //输出数据的格式: 'line-by-line' 或者 'side-by-side', 默认是'line-by-line'
+            outputFormat: 'side-by-side',
+            synchronisedScroll: true,
+            highlight: true,
+            renderNothingWhenEmpty: true,
+        };
+        var diff2htmlUi = new Diff2HtmlUI(targetElement, diffString, configuration);
+        diff2htmlUi.draw();
+        diff2htmlUi.highlightCode();
+
+        var texts = $(".d2h-code-wrapper").find("td[class='d2h-info']").find("div");
+        if (texts.length) {
+            $.each(texts,function (index,value) {
+                var _this = $(this);
+                //console.log(_this.text())
+                _this.text("");
+            });
+        }
+
+    });
+</script>
+<body>
+<div id="diffElement"></div>
+</body>
+</html>
