@@ -8,7 +8,7 @@
  * <author>          <time>          <version>          <desc>
  * 作者姓名           修改时间           版本号              描述
  */
-package com.code.mydemo;
+package com.code.myimage;
 
 import com.geccocrawler.gecco.GeccoEngine;
 import com.geccocrawler.gecco.request.HttpGetRequest;
@@ -25,10 +25,10 @@ public class Starta {
 
 
     public static void main(String[] args) {
-        HttpGetRequest start = new HttpGetRequest("https://www.dongao.com/dy/zckjs_sj_43343_list1/");
+        HttpGetRequest start = new HttpGetRequest("https://www.dongao.com/zckjs/zy/index_2.shtml");
         start.setCharset("GBK");
         GeccoEngine.create()
-                .classpath("com.dongao.mydemo")
+                .classpath("com.dongao.myimage")
                 //开始抓取的页面地址
                 .start(start)
                 //开启几个爬虫线程

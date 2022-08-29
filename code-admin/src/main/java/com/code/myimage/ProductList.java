@@ -1,4 +1,4 @@
-package com.code.mydemo;
+package com.code.myimage;
 
 import com.geccocrawler.gecco.annotation.*;
 import com.geccocrawler.gecco.request.HttpRequest;
@@ -13,7 +13,7 @@ import java.util.List;
  * @author memory
  *
  */
-@Gecco(matchUrl="https://www.dongao.com/dy/zckjs_sj_43343_list{page}/", pipelines={"consolePipeline", "myProductListPipeline"})
+@Gecco(matchUrl="https://www.dongao.com/zckjs/zy/index_{page}.shtml", pipelines={"consolePipeline", "myProductListPipeline"})
 public class ProductList implements HtmlBean {
 	
 	private static final long serialVersionUID = 4369792078959596706L;
@@ -27,13 +27,20 @@ public class ProductList implements HtmlBean {
 	/**
 	 * 抓取列表项的详细内容，包括titile，价格，详情页地址等
 	 */
-	@HtmlField(cssPath="body > div.wrap.clearfix > div.main_left > div.latest_answer > div > ul > li > div > a")
+	@HtmlField(cssPath="#top > div.wrap > div > div.content > div.container > div.content_main > div.column_list > ul > li > div.left_con > a")
 	private List<HrefBean> details;
+
+	/**
+	 * 抓取列表项的详细内容，包括titile，价格，详情页地址等
+	 */
+	@Image
+	@HtmlField(cssPath="#top > div.wrap > div > div.content > div.container > div.content_main > div.column_list > ul > li > div.img_con > img")
+	private List<String> images;
 	/**
 	 * 获得商品列表的总页数
 	 */
 	@Text
-	@HtmlField(cssPath="body > div.wrap.clearfix > div.main_left > div.latest_answer > div > div > ul > li:nth-last-child(2) > a")
+	@HtmlField(cssPath="#top > div.wrap > div > div.content > div.container > div.content_main > div:nth-child(2) > div > ul > li:nth-last-child(2) > a")
 	private int totalPage;
 
 	public void setRequest(HttpRequest request) {
@@ -69,5 +76,13 @@ public class ProductList implements HtmlBean {
 
 	public int getTotalPage() {
 		return totalPage;
+	}
+
+	public List<String> getImages() {
+		return images;
+	}
+
+	public void setImages(List<String> images) {
+		this.images = images;
 	}
 }
