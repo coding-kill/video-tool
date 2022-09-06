@@ -1,6 +1,6 @@
 package com.code.myimage;
 
-import com.dongao.project.utils.FileUtil;
+import com.code.util.FileUtil;
 import com.geccocrawler.gecco.annotation.PipelineName;
 import com.geccocrawler.gecco.pipeline.Pipeline;
 import com.geccocrawler.gecco.request.HttpRequest;
