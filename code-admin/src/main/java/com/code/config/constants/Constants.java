@@ -38,10 +38,10 @@ public class Constants {
      */
     public static enum Platform{
         COS(1,"腾讯云"),
-        CMS_DAZX_PC(2,"东奥在线PC"),
-        CMS_DAZX_M(3,"东奥在线H5"),
-        CMS_DAZT_PC(4,"东奥专题PC"),
-        CMS_DAZT_M(5,"东奥专题H5");
+        CMS_DAZX_PC(2,"画东风在线PC"),
+        CMS_DAZX_M(3,"画东风在线H5"),
+        CMS_DAZT_PC(4,"画东风专题PC"),
+        CMS_DAZT_M(5,"画东风专题H5");
 
         private Integer value;
         private String description;

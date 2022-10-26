@@ -70,7 +70,7 @@
 <div th:include="include::footer"></div>
 
 <script type="text/javascript">
-    window.UPLOAD_URL = "/project/webUpload/upload/";
+    window.UPLOAD_URL = "project/webUpload/upload/";
 
     function log(msg) {
         document.getElementById("log").innerHTML += (msg != undefined ? msg : "") + "<br />";
@@ -119,7 +119,7 @@
 
     var Uploader = Q.Uploader;
     var q = new Uploader({
-        url: UPLOAD_URL,
+        url: ctx + UPLOAD_URL,
         //urlForQuery: UPLOAD_URL,  //秒传或分片上传查询接口，未指定时默认使用上传接口
 
         target: [document.getElementById("upload-folder-target"),document.getElementById("upload-one-target")],
