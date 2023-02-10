@@ -8,6 +8,6 @@
 
     var UPLOAD_URL = window.localStorage ? localStorage.getItem("UPLOAD_URL") : undefined;
 
-    window.UPLOAD_URL = ctx + "project/webUpload/upload/";
+    window.UPLOAD_URL = "/project/webUpload/upload/";
 
 })();

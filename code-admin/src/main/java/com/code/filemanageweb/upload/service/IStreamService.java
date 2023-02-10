@@ -41,9 +41,9 @@ public interface IStreamService
 	 * @param bakPath
 	 * @throws StreamException
 	 */
-	void saveCosBak(String fileName, String filePath, long fileSize, String srcPath, String bakPath, String bakName,
-                    int delFlag, String remark, String fileNameSuffix, Long maxVersionNum, String obfuscateSourceName,
-                    Integer obfuscateFlag, String logName) throws StreamException ;
+	void saveCosBak(String fileName, String filePath, long fileSize, String srcPath, String bakPath,String bakName,
+					int delFlag,String remark,String fileNameSuffix,Long maxVersionNum,String obfuscateSourceName,
+					Integer obfuscateFlag,String logName) throws StreamException ;
 
 	/**
 	 * 保存备份公共方法
@@ -55,7 +55,7 @@ public interface IStreamService
 	 * @param logName
 	 * @return
 	 */
-	public Long saveCmsBak(String fileName, String filePath, String bakPath, int delFlag, int logPlatform, String logName, String remark);
+	public Long saveCmsBak(String fileName, String filePath, String bakPath,int delFlag,int logPlatform,String logName,String remark);
 
 	/**
 	 * 新增加的上传插件的公共方法
@@ -64,4 +64,12 @@ public interface IStreamService
 	 * @param upfile
 	 */
 	void webUploadPost(HttpServletRequest request, HttpServletResponse response, MultipartFile upfile)throws ServletException, IOException ;
+
+	/**
+	 * 编辑后执行腾讯云COS上传
+	 * @param filearea
+	 * @param fileName
+	 */
+    void editUpload(String filearea, String fileName, String versionId,String platform,String path,
+					String remark)throws Exception;
 }

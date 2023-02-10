@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:include="include :: header('在线编辑')"/>
+    <th:block th:include="include :: select2-css" />
+    <th:block th:include="include :: bootstrap-select-css" />
+    <link rel="stylesheet" th:href="@{/codemirror-5.65.11/theme/darcula.css}">
+    <link th:href="@{/codemirror-5.65.11/lib/codemirror.css}" rel="stylesheet"/>
+    <!--引入js，绑定Vim-->
+    <link rel="stylesheet" th:href="@{/codemirror-5.65.11/addon/dialog/dialog.css}">
+    <!--支持代码折叠-->
+    <link rel="stylesheet" th:href="@{/codemirror-5.65.11/addon/fold/foldgutter.css}"/>
+    <!--全屏模式-->
+    <link rel="stylesheet" th:href="@{/codemirror-5.65.11/addon/display/fullscreen.css}">
+    <!--自动补全-->
+    <link rel="stylesheet" th:href="@{/codemirror-5.65.11/addon/hint/show-hint.css}">
+    <style>
+        /*设置编辑框大小*/
+        /*.CodeMirror{border:1px solid black;font-size:15px;width:100px;height:100px;}*/
+    </style>
+</head>
+<body class="white-bg">
+<!--<div class="ibox-content">
+    <div class="form-group">
+        <label class="font-noraml">选择主题：</label>
+        <select id="theme" class="form-control" onclick="changeval();">
+            <option value="">&#45;&#45;请选择&#45;&#45;</option>
+            <option value="3024-day">3024-day</option>
+            <option value="3024-night">3024-night</option>
+            <option value="abbott">abbott</option>
+            <option value="abcdef">abcdef</option>
+            <option value="ambiance">ambiance</option>
+            <option value="ambiance-mobile">ambiance-mobile</option>
+            <option value="ayu-dark">ayu-dark</option>
+            <option value="ayu-mirage">ayu-mirage</option>
+            <option value="base16-dark">base16-dark</option>
+            <option value="base16-light">base16-light</option>
+            <option value="bespin">bespin</option>
+            <option value="blackboard">blackboard</option>
+            <option value="cobalt">cobalt</option>
+            <option value="colorforth">colorforth</option>
+            <option value="darcula">darcula</option>
+            <option value="dracula">dracula</option>
+            <option value="duotone-dark">duotone-dark</option>
+            <option value="duotone-light">duotone-light</option>
+            <option value="eclipse">eclipse</option>
+            <option value="elegant">elegant</option>
+            <option value="erlang-dark">erlang-dark</option>
+            <option value="gruvbox-dark">gruvbox-dark</option>
+            <option value="hopscotch">hopscotch</option>
+            <option value="icecoder">icecoder</option>
+            <option value="idea">idea</option>
+            <option value="isotope">isotope</option>
+            <option value="juejin">juejin</option>
+            <option value="lesser-dark">lesser-dark</option>
+            <option value="liquibyte">liquibyte</option>
+            <option value="lucario">lucario</option>
+            <option value="material">material</option>
+            <option value="material-darker">material-darker</option>
+            <option value="material-ocean">material-ocean</option>
+            <option value="material-palenight">material-palenight</option>
+            <option value="mbo">mbo</option>
+            <option value="mdn-like">mdn-like</option>
+            <option value="midnight">midnight</option>
+            <option value="monokai">monokai</option>
+            <option value="moxer">moxer</option>
+            <option value="neat">neat</option>
+            <option value="neo">neo</option>
+            <option value="night">night</option>
+            <option value="nord">nord</option>
+            <option value="oceanic-next">oceanic-next</option>
+            <option value="panda-syntax">panda-syntax</option>
+            <option value="paraiso-dark">paraiso-dark</option>
+            <option value="paraiso-light">paraiso-light</option>
+            <option value="pastel-on-dark">pastel-on-dark</option>
+            <option value="railscasts">railscasts</option>
+            <option value="rubyblue">rubyblue</option>
+            <option value="seti">seti</option>
+            <option value="shadowfox">shadowfox</option>
+            <option value="solarized">solarized</option>
+            <option value="ssms">ssms</option>
+            <option value="the-matrix">the-matrix</option>
+            <option value="tomorrow-night-bright">tomorrow-night-bright</option>
+            <option value="tomorrow-night-eighties">tomorrow-night-eighties</option>
+            <option value="ttcn">ttcn</option>
+            <option value="twilight">twilight</option>
+            <option value="vibrant-ink">vibrant-ink</option>
+            <option value="xq-dark">xq-dark</option>
+            <option value="xq-light">xq-light</option>
+            <option value="yeti">yeti</option>
+            <option value="yonce">yonce</option>
+            <option value="zenburn">zenburn</option>
+        </select>
+    </div>
+</div>-->
+<div class="container-div ui-layout-center">
+    <div class="row">
+
+        <div class="col-sm-12 my-search-collapse">
+            <div class="select-list">
+                <div style="color:red;" th:if="${platform} == 1">当前文件：[[${path}]][[${name}]]</div>
+                <div style="color:red;" th:if="${platform} != 1">当前文件：[[${path}]]/[[${name}]]</div>
+            </div>
+        </div>
+
+        <div class="col-sm-12 search-collapse">
+            <div class="ibox-content">
+                <div class="form-group">
+                    <label style="float: left;padding-top: 10px;"><font color="red" style="padding-right: 5px;">*</font></fon>备注：
+                    </label>
+                    <div class="col-sm-8">
+                        <input id="remark" name="remark" placeholder="请在保存之前填写" class="form-control"/>
+                    </div>
+                    <div class="col-sm-3" style="padding-top: 7px;float: right;">
+                        <a href="#" title="Ctrl+A: selectAll(全选)
+Ctrl+D: deleteLine(删除整行)
+Alt+G: jumpToLine(跳转指定行)
+Ctrl+Z: undo(撤销)
+Ctrl+Home: goDocStart(光标定位到文档开始)
+Ctrl+End: goDocEnd(光标定位到文档结束)
+Ctrl+Up: goLineUp(光标上移一行)
+Ctrl+Down: goLineDown(光标下移一行)
+Ctrl+Left: goGroupLeft(光标左移)
+Ctrl+Right: goGroupRight(光标右移)
+Alt+Left: goLineStart(光标左移)
+Alt+Right: goLineEnd(光标右移)
+Ctrl+Backspace: delGroupBefore(删除光标前一个词)
+Ctrl+Delete: delGroupAfter(删除光标后一个词)
+Ctrl+F: find(查找)
+Ctrl+G: findNext(查找下一个)
+Ctrl+U: undoSelection(撤销)
+Shift+Ctrl+U: redoSelection(重做)
+Alt+U: redoSelection(重做)">快捷键操作<i class="fa fa-question"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div style="padding-top:10px;">
+                <div class="col-sm-offset-5 col-sm-10">
+                    <button type="button" class="btn btn-sm btn-primary" onclick="submitHandler()"><i class="fa fa-check"></i>保
+                        存</button>&nbsp;
+                    <button type="button" class="btn btn-sm btn-danger" onclick="closeItem()"><i class="fa fa-reply-all"></i>关 闭
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="tableDiv" class="col-sm-12 select-table table-striped" style="height: calc(100% - 140px);overflow: auto;padding-right:15px;">
+            <div style="padding-top:10px;padding-right:15px;">
+                <form style="margin-top: 20px;margin-left: 20px;" id="form-code-edit">
+                    <input type="hidden" name="fileName" id="fileName" th:value="${name}"/>
+                    <input type="hidden" name="versionId" id="versionId" th:value="${versionId}"/>
+                    <input type="hidden" name="platform" id="platform" th:value="${platform}"/>
+                    <input type="hidden" name="path" id="path" th:value="${path}"/>
+                    <textarea id="filearea" name="filearea">[[${filearea}]]</textarea>
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div th:include="include::footer"></div>
+<script th:src="@{/codemirror-5.65.11/lib/codemirror.js}"></script>
+<!--引入js，sublime-->
+<script th:src="@{/codemirror-5.65.11/keymap/sublime.js}"></script>
+<!--光标定位-->
+<script th:src="@{/codemirror-5.65.11/addon/search/searchcursor.js}"></script>
+<script th:src="@{/codemirror-5.65.11/addon/search/jump-to-line.js}"></script>
+<!--支持代码折叠-->
+<script th:src="@{/codemirror-5.65.11/addon/fold/foldcode.js}"></script>
+<script th:src="@{/codemirror-5.65.11/addon/fold/foldgutter.js}"></script>
+<script th:src="@{/codemirror-5.65.11/addon/fold/brace-fold.js}"></script>
+<script th:src="@{/codemirror-5.65.11/addon/fold/comment-fold.js}"></script>
+<!--全屏模式-->
+<script th:src="@{/codemirror-5.65.11/addon/display/fullscreen.js}"></script>
+<!--括号匹配-->
+<script th:src="@{/codemirror-5.65.11/addon/edit/matchbrackets.js}"></script>
+<!--自动补全-->
+<script th:src="@{/codemirror-5.65.11/addon/hint/show-hint.js}"></script>
+<script th:src="@{/codemirror-5.65.11/addon/hint/javascript-hint.js}"></script>
+<script th:src="@{/codemirror-5.65.11/addon/hint/html-hint.js}"></script>
+<script th:src="@{/codemirror-5.65.11/addon/hint/css-hint.js}"></script>
+<!--js高亮-->
+<script th:src="@{/codemirror-5.65.11/mode/javascript/javascript.js}"></script>
+<!--选中词高亮-->
+<script th:src="@{/codemirror-5.65.11/addon/search/match-highlighter.js}"></script>
+<script type="text/javascript">
+    var prefix = ctx + "project/publishCosFiles";
+    //根据DOM元素的id构造出一个编辑器
+    var editor=CodeMirror.fromTextArea(document.getElementById("filearea"),{
+        mode:"text/javascript",
+        //行号
+        lineNumbers:true,
+        //设置主题
+        theme:"darcula",
+        //绑定sublime
+        keyMap:"sublime",
+        //代码折叠
+        lineWrapping:true,
+        foldGutter: true,
+        gutters:["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+        //全屏模式
+        fullScreen:true,
+        //括号匹配
+        matchBrackets:true,
+        //智能提示 //ctrl-space唤起智能提示
+        extraKeys:{"Tab":"autocomplete","Ctrl-D":"deleteLine", "Ctrl-Up": "goLineUp", "Ctrl-Down":
+                "goLineDown"},
+        highlightSelectionMatches:true
+    });
+
+    function submitHandler() {
+        //该方法得到的结果是经过转义的数据
+        var toTextArea = editor.getValue();
+        if (toTextArea != "") {
+            $("#filearea").text(toTextArea);
+        }else {
+            $.modal.alertWarning("文件内容已被人工删除，请注意！");
+            return false;
+        }
+        var remark = $("#remark").val();
+        if (remark == "" || remark == undefined) {
+            $.modal.alertWarning("请添加备注！");
+            return false;
+        }
+        //console.log($("#filearea").val());
+        var data = $('#form-code-edit').serializeArray();
+        data.push({"name": "remark", "value": remark});
+        $.operate.saveTab(prefix + "/saveCode", data);
+    }
+
+    //设置主题
+    function changeval() {
+        var val = $("#theme").val();
+        editor.setOption("theme",val);
+    }
+
+    /*function myAlert() {
+        $.modal.msg("Ctrl+A: selectAll(全选)\n" +
+            "Ctrl+D: deleteLine(删除整行)\n" +
+            "Ctrl+Z: undo(撤销)\n" +
+            "Ctrl+Home: goDocStart(光标定位到文档开始)\n" +
+            "Ctrl+End: goDocEnd(光标定位到文档结束)\n" +
+            "Ctrl+Up: goLineUp(光标上移一行)\n" +
+            "Ctrl+Down: goLineDown(光标下移一行)\n" +
+            "Ctrl+Left: goGroupLeft(光标左移)\n" +
+            "Ctrl+Right: goGroupRight(光标右移)\n" +
+            "Alt+Left: goLineStart(光标左移)\n" +
+            "Alt+Right: goLineEnd(光标右移)\n" +
+            "Ctrl+Backspace: delGroupBefore(删除光标前一个词)\n" +
+            "Ctrl+Delete: delGroupAfter(删除光标后一个词)\n" +
+            "Ctrl+F: find(查找)\n" +
+            "Ctrl+G: findNext(查找下一个)\n" +
+            "Ctrl+U: undoSelection(撤销)\n" +
+            "Shift+Ctrl+U: redoSelection(重做)\n" +
+            "Alt+U: redoSelection(重做)");
+    }*/
+
+    //获取Codemirror的值
+    //该方法得到的结果是经过转义的数据
+    //editor.getValue();
+    //该方法得到的结果是未经过转义的数据
+    //editor.toTextArea();
+    //editor.getTextArea().value;
+    //如果是通过 JS 进行表单提交，可以在提交的 JS 代码中这样使用：
+
+    //将 Codemirror 的内容赋值给 Textarea
+    //$("#content").text(editor.getValue());
+</script>
+</body>
+</html>

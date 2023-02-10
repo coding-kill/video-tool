@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.code.config.constants.Constants;
 import com.code.config.properties.CosProperties;
 import com.code.config.streamconfig.ConfigConstant;
+import com.code.filemanageweb.publishfileversion.domain.PublishFileVersion;
 import com.code.filemanageweb.publishfileversion.service.IPublishFileVersionService;
 import com.code.filemanageweb.publishoperationlog.service.IPublishOperationLogService;
 import com.code.filemanageweb.upload.domain.Range;
@@ -12,6 +13,7 @@ import com.code.util.IoUtil;
 import com.code.util.StreamCosClientUtil;
 import com.qcloud.cos.COSClient;
 import com.qcloud.cos.model.*;
+import com.qcloud.cos.transfer.Upload;
 import com.qcloud.cos.utils.StringUtils;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.DateUtils;
@@ -22,6 +24,7 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -218,7 +221,7 @@ public class StreamServiceImpl implements IStreamService{
 						continue;
 					}
 					if(entry.getKey()==logPlatform){
-						bakPath = param2.replace(entry.getValue(),entry.getValue()+ Constants.CMS_BAK_PATH_SUFFIX);
+						bakPath = param2.replace(entry.getValue(),entry.getValue()+Constants.CMS_BAK_PATH_SUFFIX);
 						break;
 					}
 				}
@@ -282,7 +285,7 @@ public class StreamServiceImpl implements IStreamService{
 
 //						记录失败日志到数据库
 						publishOperationLogService.commonSaveOperationLog(logPlatform,Constants.OperationType.FILE.getValue(),null,null,Constants.OPERATION_DESCRIPTION.FILE_UPLOAD.getDescription()+Constants.OPERATION_DESCRIPTION.OPERATION_FAILED.getDescription(),
-								param2,fileName);
+								param2,fileName,0L);
 
 					}
 				}
@@ -476,7 +479,7 @@ public class StreamServiceImpl implements IStreamService{
 //							记录版本日志和操作日志
 		Long i = publishFileVersionService.commonSavePublishFileVersion(logPlatform, 0, param2, fileName, bakPath, bakName, fileNameSuffix, nowFile.length(), 0, maxVersionNum, remark,obfuscateSourceName,1);
 		publishOperationLogService.commonSaveOperationLog(logPlatform,Constants.OperationType.FILE.getValue(),null,null,Constants.OPERATION_DESCRIPTION.FILE_UPLOAD.getDescription(),
-				param2,fileName);
+				param2,fileName,i);
 	}
 
 	/**
@@ -561,7 +564,7 @@ public class StreamServiceImpl implements IStreamService{
 //		记录版本日志和操作日志
 		Long i = publishFileVersionService.commonSavePublishFileVersion(logPlatform, 0, path, fileName, bakPath, bakName, fileNameSuffix, nowFile.length(), 0, maxVersionNum, remark,obfuscateSourceName,1);
 		publishOperationLogService.commonSaveOperationLog(logPlatform,Constants.OperationType.FILE.getValue(),null,null,Constants.OPERATION_DESCRIPTION.FILE_UPLOAD.getDescription(),
-				path,fileName);
+				path,fileName,i);
 	}
 
 	//混淆操作
@@ -673,8 +676,8 @@ public class StreamServiceImpl implements IStreamService{
 		if (copyResult != null) {
             //复制成功，保存版本信息
             //记录版本日志到数据库，记录操作日志到数据库
-            publishFileVersionService.commonSavePublishFileVersion(platform,0,filePath,fileName,bakPath,bakName,fileNameSuffix,fileSize,delFlag,maxVersionNum,remark,obfuscateSourceName,obfuscateFlag);
-            publishOperationLogService.commonSaveOperationLog(platform,Constants.OperationType.FILE.getValue(),null, null,logName, filePath,fileName);
+			Long aLong = publishFileVersionService.commonSavePublishFileVersion(platform, 0, filePath, fileName, bakPath, bakName, fileNameSuffix, fileSize, delFlag, maxVersionNum, remark, obfuscateSourceName, obfuscateFlag);
+			publishOperationLogService.commonSaveOperationLog(platform,Constants.OperationType.FILE.getValue(),null, null,logName, filePath,fileName,aLong);
         }else {
             throw new StreamException(StreamException.ERROR_FILE_RANGE_START);
         }
@@ -791,7 +794,7 @@ public class StreamServiceImpl implements IStreamService{
 //		记录版本日志到数据库，记录操作日志到数据库 TODO 最后参数根据情况修改
 		Long i = publishFileVersionService.commonSavePublishFileVersion(logPlatform, 0, filePath, fileName, bakPath, bakName, fileNameSuffix, lastFile.length(), delFlag, maxVersionNum, remark,null,0);
 		publishOperationLogService.commonSaveOperationLog(logPlatform,Constants.OperationType.FILE.getValue(),null,null,logName,
-				filePath,fileName);
+				filePath,fileName,i);
 		return i;
 	}
 
@@ -924,7 +927,7 @@ public class StreamServiceImpl implements IStreamService{
 
 //					记录失败日志到数据库
 					publishOperationLogService.commonSaveOperationLog(logPlatform,Constants.OperationType.FILE.getValue(),null,null,Constants.OPERATION_DESCRIPTION.FILE_UPLOAD.getDescription()+Constants.OPERATION_DESCRIPTION.OPERATION_FAILED.getDescription(),
-							path,fileName);
+							path,fileName,0L);
 				}finally {
 					IoUtil.close(out);
 					IoUtil.close(content);
@@ -1061,7 +1064,7 @@ public class StreamServiceImpl implements IStreamService{
 						}
 //						记录失败日志到数据库
 						publishOperationLogService.commonSaveOperationLog(logPlatform,Constants.OperationType.FILE.getValue(),null,null,Constants.OPERATION_DESCRIPTION.FILE_UPLOAD.getDescription()+Constants.OPERATION_DESCRIPTION.OPERATION_FAILED.getDescription(),
-								path,fileName);
+								path,fileName,0L);
 
 						writer.write("0");
 						IoUtil.close(writer);
@@ -1348,7 +1351,7 @@ public class StreamServiceImpl implements IStreamService{
 		String user = request.getParameter("user");
 		String name = request.getParameter("name");
 
-		json.put("time", DateUtils.parseDateToStr("yyyy/MM/dd HH:mm:ss",new Date()));
+		json.put("time",DateUtils.parseDateToStr("yyyy/MM/dd HH:mm:ss",new Date()));
 
 		if(type != null){
 			json.put("type",type);
@@ -1362,4 +1365,173 @@ public class StreamServiceImpl implements IStreamService{
 
 		return json;
 	}
+
+	/**
+	 * 编辑后执行腾讯云COS上传
+	 * @param filearea  文件内容字符串
+	 * @param fileName   文件名称
+	 * @param versionId 最后一版文件版本的版本id
+	 */
+	@Override
+	public void editUpload(String filearea, String fileName, String versionId,String platform,String path,
+						   String remark) throws Exception{
+		//获取最后一版文件版本信息
+		PublishFileVersion fileVersion = null;
+		if (com.ruoyi.common.utils.StringUtils.isNotEmpty(versionId)) {
+			fileVersion = publishFileVersionService.selectPublishFileVersionById(Long.parseLong(versionId));
+		}
+		String key = null;
+		try {
+			//临时文件存放目录  写入改写后的文件
+			String profile = ConfigConstant.cosTempPath;
+			//临时文件全路径
+			key = profile + fileName;
+			FileWriter writer = new FileWriter(key);
+			writer.write(filearea);
+			writer.flush();
+			writer.close();
+
+			if("1".equals(platform)){
+				//腾讯云
+				String bakPath = ConfigConstant.cosBakPath+path;
+				//腾讯云文件名需要追加具体路径
+				String uploadFileName = path + fileName;
+				//腾讯云平台
+				CosClientUtil cosClientUtil = new CosClientUtil();
+
+				//临时文件写入成功之后进入后续上传文件到腾讯云操作
+				Long maxVersionNum = 0L;
+				if (Objects.nonNull(fileVersion)) {
+					maxVersionNum = fileVersion.getVersionNum()+1;
+				}else {
+					maxVersionNum = publishFileVersionService.getMaxVersionNum(Integer.parseInt(platform), path, fileName);
+				}
+				String fileNameSuffix = "";
+				String obfuscateSourceName = "";
+				String bakName = "";
+				boolean isconfused = false;
+				Integer obfuscateFlag = 0;
+				try {
+					//生成混淆前源文件名称
+					String fileNamePre;
+					if (fileName.contains(".")) {
+						fileNamePre = fileName.substring(0,fileName.lastIndexOf("."));
+						fileNameSuffix = fileName.substring(fileName.lastIndexOf(".")+1);
+						obfuscateSourceName = fileNamePre+Constants.CURRENT_UPLOAD_CONFUSED_PREFIX+maxVersionNum+"."+fileNameSuffix;
+						bakName = fileNamePre+Constants.CURRENT_UPLOAD_BAK_PREFIX+maxVersionNum+"."+fileNameSuffix;
+					}else {
+						fileNamePre = fileName;
+						fileNameSuffix = "";
+						obfuscateSourceName = fileNamePre+Constants.CURRENT_UPLOAD_CONFUSED_PREFIX+maxVersionNum;
+						bakName = fileNamePre+Constants.CURRENT_UPLOAD_BAK_PREFIX+maxVersionNum;
+					}
+					//判断当前备份文件是否已经存在
+					boolean exist = cosClientUtil.doesObjectExist(bakPath+obfuscateSourceName);
+					if (exist) {
+						//判断如果文件已经存在，则版本号在加1
+						maxVersionNum = maxVersionNum+1;
+						if (StringUtils.isNullOrEmpty(fileNameSuffix)) {
+							obfuscateSourceName = fileNamePre+Constants.CURRENT_UPLOAD_CONFUSED_PREFIX+maxVersionNum;
+							bakName = fileNamePre+Constants.CURRENT_UPLOAD_BAK_PREFIX+maxVersionNum;
+						}else {
+							obfuscateSourceName = fileNamePre+Constants.CURRENT_UPLOAD_CONFUSED_PREFIX+maxVersionNum+"."+fileNameSuffix;
+							bakName = fileNamePre+Constants.CURRENT_UPLOAD_BAK_PREFIX+maxVersionNum+"."+fileNameSuffix;
+						}
+					}
+					if (Objects.nonNull(fileVersion)) {
+						//最后的版本存在的时候，需要判断是否混淆，如果没有最后的版本则不用混淆
+						if (fileVersion.getObfuscateFlag() == 1 && "js".equals(fileNameSuffix.toLowerCase())) {
+							uploadFileName = bakPath + obfuscateSourceName;
+							isconfused = true;
+							obfuscateFlag = 1;
+						}
+						if (fileVersion.getObfuscateFlag() == 1 && "css".equals(fileNameSuffix.toLowerCase())) {
+							uploadFileName = bakPath + obfuscateSourceName;
+							isconfused = true;
+							obfuscateFlag = 1;
+						}
+					}
+					//上传本地临时文件到腾讯云
+					cosClientUtil.uploadFile(uploadFileName, key);
+				} catch (Exception se) {
+					se.printStackTrace();
+				}
+				//上传完成之后需要进行后续备份等操作
+				try {
+					File file = new File(key);
+					cosObscured(fileName, remark, path, file.length(), uploadFileName, bakPath, maxVersionNum,
+							fileNameSuffix, obfuscateSourceName, bakName, cosClientUtil, isconfused, obfuscateFlag);
+				} catch (Exception e) {
+					e.printStackTrace();
+					return;
+				}
+			}else {
+				//新编辑的内容已经写到文件里了，后续需要执行混淆及备份了
+				String fileNamePre = fileName;
+				String fileNameSuffix = "";
+				String bakPath;
+				if (Objects.nonNull(fileVersion)) {
+					bakPath = fileVersion.getBakPathPrefix();
+				}else {
+					bakPath = getCmsBakPath(path, platform);
+				}
+				Integer logPlatform = Integer.parseInt(platform);
+				//生成混淆前源文件名称
+				boolean contains = fileName.contains(".");
+				if(contains){
+					fileNamePre = fileName.substring(0,fileName.lastIndexOf("."));
+					fileNameSuffix = fileName.substring(fileName.lastIndexOf(".")+1);
+				}
+				boolean jsObfFlag = false;
+				boolean cssObfFlag = false;
+				if (Objects.nonNull(fileVersion)) {
+					//最后的版本存在的时候，需要判断是否混淆，如果没有最后的版本则不用混淆
+					jsObfFlag = fileVersion.getObfuscateFlag() == 1 && "js".equals(fileNameSuffix.toLowerCase());
+					cssObfFlag = fileVersion.getObfuscateFlag() == 1 && "css".equals(fileNameSuffix.toLowerCase());
+				}
+				if (jsObfFlag||cssObfFlag) {
+					File file = new File(key);
+					FileInputStream fileInputStream = new FileInputStream(file);
+					MultipartFile upfile = new MockMultipartFile(fileName,fileInputStream);
+					cmsObfFileNew(fileName, remark, path, upfile, bakPath, logPlatform, fileNamePre, fileNameSuffix);
+				}else {
+//					移动token为现有文件
+					File file = new File(key);
+					File currentFile = new File( path + "/" + fileName);
+//					删除现有文件
+					IoUtil.getFile(fileName,path).delete();
+					Files.copy(file.toPath(), currentFile.toPath());
+					//备份现有文件
+					saveCmsBak(fileName,path,bakPath,0,logPlatform,Constants.OPERATION_DESCRIPTION.FILE_UPLOAD.getDescription(),remark);
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw e;
+		}finally {
+			//由于此处文件内容写在临时文件中，所以使用完之后需要删除下载的临时文件
+			if (com.ruoyi.common.utils.StringUtils.isNotEmpty(key)) {
+				boolean delete = new File(key).delete();
+			}
+		}
+	}
+
+	public String getCmsBakPath(String path,String platform) {
+		//遍历获取当前平台的根路径及备份路径
+		String bakPath = "";
+		int logplatform = Integer.parseInt(platform);
+		Set<Map.Entry<Integer, String>> entries = ConfigConstant.allRootPath.entrySet();
+		for(Map.Entry<Integer, String> entry : entries){
+			if(entry.getKey()==1){
+				//	跳过腾讯云获取其他本地平台
+				continue;
+			}
+			if(entry.getKey()==logplatform){
+				bakPath = path.replace(entry.getValue(),entry.getValue()+Constants.CMS_BAK_PATH_SUFFIX);
+				break;
+			}
+		}
+		return bakPath;
+	}
+
 }

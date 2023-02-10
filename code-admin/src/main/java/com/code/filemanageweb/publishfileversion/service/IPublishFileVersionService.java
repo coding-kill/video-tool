@@ -62,7 +62,7 @@ public interface IPublishFileVersionService
 	 * @param name
 	 * @return
 	 */
-	public Long getMaxVersionNum(int platform, String path, String name);
+	public Long getMaxVersionNum(int platform,String path,String name);
 
 	/**
 	 * 公共的保存版本日志
@@ -79,7 +79,7 @@ public interface IPublishFileVersionService
 	 * @param remark
      * @return
 	 */
-	public Long commonSavePublishFileVersion(int platform, long jobId, String path, String name, String bakPath, String bakName, String type, long size, int delFlag, long versionNum, String remark, String obfuscateSourceName, Integer obfuscateFlag);
+	public Long commonSavePublishFileVersion(int platform, long jobId, String path, String name, String bakPath, String bakName, String type, long size, int delFlag, long versionNum, String remark,String obfuscateSourceName,Integer obfuscateFlag);
 
 	/**
 	 * cms查询版本list
@@ -108,5 +108,5 @@ public interface IPublishFileVersionService
 	 * @param name
 	 * @return
 	 */
-    PublishFileVersion getLastFileVersion(Integer platform, String path, String name);
+    PublishFileVersion getLastFileVersion(Integer platform,String path,String name);
 }

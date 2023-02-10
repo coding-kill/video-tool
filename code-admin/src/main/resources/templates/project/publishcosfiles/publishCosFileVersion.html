@@ -29,7 +29,7 @@
 						<input type="hidden" id="path" name="path" th:value="${title}">
 						<input type="hidden" id="platform" name="platform" th:value="${platform}">
 						<li>
-							文件名：<input type="text" name="name"/>
+							文件名：<input type="text" name="name" th:value="${name}"/>
 						</li>
 
 						<li>
@@ -70,6 +70,7 @@
 <div th:include="include :: footer"></div>
 <script th:inline="javascript">
     var viewImgFlag = [[${@permission.hasPermi('project:publishCosFiles:showImage')}]];
+    var downloadFlag = [[${@permission.hasPermi('project:publishCosFiles:download')}]];
 
     var prefix = ctx + "project/publishFileVersion";
 
@@ -346,8 +347,21 @@
                             if (fileType != null && ("html" == fileType.toLowerCase() || "shtml" == fileType.toLowerCase() || "css" == fileType.toLowerCase() ||
 								"js" == fileType.toLowerCase()|| "txt" == fileType.toLowerCase())) {
                                 html +='<a class="btn btn-info btn-xs " href="javascript:void(0)" onclick="comparedFile('+k.id+')">';
-                                html +='<i class="fa fa-exchange"/>对比</a>';
+                                html +='<i class="fa fa-exchange"/>对比</a> ';
                             }
+
+                            var downPath = "";
+                            var fileName = "";
+                            if(k.obfuscateFlag === 1){
+                                //    混淆的时候下再混淆之前文件名。其他的下载当前备份目录
+                                fileName = k.obfuscateSourceName;
+                            }else {
+                                fileName = k.bakName;
+                            }
+                            downPath = k.bakPathPrefix + fileName;
+                            html +='<a class="btn btn-primary btn-xs ' + downloadFlag + '" href="javascript:void(0)" onclick="downloadFile(\'' + downPath + '\',\''+fileName+'\')">';
+                            html +='<i class="fa fa-download"></i>下载</a> ';
+
                             html +='</td>';
                             html +='</tr>';
                         });
@@ -408,6 +422,15 @@
 		$("#createUser").val("");
 		$.form.reset();
 	}
+
+    //下载文件
+    function downloadFile(filePath,fileName) {
+        $.modal.confirm("确认要下载文件" + fileName + "吗?", function() {
+            location.href = ctx + "project/publishCosFiles/downloadFile?filePath=" + filePath+"&fileName="+fileName;
+            layer.msg('文件下载中，请稍后…', { icon: 1 });
+        });
+    }
+
 </script>
 </body>
 </html>

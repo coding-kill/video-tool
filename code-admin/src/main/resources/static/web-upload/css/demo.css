@@ -25,7 +25,7 @@ a { text-decoration: none; }
 .content .x-button { display: inline-block; vertical-align: top; margin-right: 5px; }
 
 #upload-target { margin-bottom: 15px; }
-#upload-view {height: 200px; background: #fff; border: 1px solid green; overflow: auto;}
+#upload-view {height: 130px; background: #fff; border: 1px solid green; overflow: auto;}
 #log {height: 200px; background: #fff; border: 1px solid green; overflow: auto;}
 #log { margin: 5px 0; white-space: nowrap; clear: both; }
 

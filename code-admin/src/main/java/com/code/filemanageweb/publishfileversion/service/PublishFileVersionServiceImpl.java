@@ -340,7 +340,7 @@ public class PublishFileVersionServiceImpl implements IPublishFileVersionService
 //					记录版本日志到数据库，记录操作日志到数据库
 					Long i = commonSavePublishFileVersion(publishFileVersion.getPlatform(), 0, publishFileVersion.getPath(), publishFileVersion.getName(), bakPath, bakName, fileNameSuffix, oldBakFile.length(), 0, maxVersionNum, null,obfuscateSourceName,1);
 					publishOperationLogService.commonSaveOperationLog(publishFileVersion.getPlatform(),Constants.OperationType.FILE.getValue(),null,null,"还原备份增加新版本",
-							publishFileVersion.getPath(),publishFileVersion.getName());
+							publishFileVersion.getPath(),publishFileVersion.getName(),i);
 
 				}else {
 //					备份现有文件
@@ -357,7 +357,7 @@ public class PublishFileVersionServiceImpl implements IPublishFileVersionService
 					IoUtil.getFile(publishFileVersion.getName()+"ei_temp_bak",publishFileVersion.getPath()).delete();
 //					记录失败日志到数据库
 					publishOperationLogService.commonSaveOperationLog(publishFileVersion.getPlatform(),Constants.OperationType.FILE.getValue(),null,null,"还原失败",
-							publishFileVersion.getPath(),publishFileVersion.getName());
+							publishFileVersion.getPath(),publishFileVersion.getName(),0L);
 				}catch (Exception ee){
 					ee.printStackTrace();
 					return AjaxResult.error("还原失败："+ee.getMessage());

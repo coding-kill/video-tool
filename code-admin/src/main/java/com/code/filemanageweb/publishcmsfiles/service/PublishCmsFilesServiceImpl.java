@@ -24,6 +24,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
@@ -96,7 +97,7 @@ public class PublishCmsFilesServiceImpl implements IPublishCmsFilesService
 			return AjaxResult.error("文件夹已存在，请更换名称");
 		}
 		f.mkdirs();
-		publishOperationLogService.commonSaveOperationLog(Integer.parseInt(platform),Constants.OperationType.FOLDER.getValue(),null,null,Constants.OPERATION_DESCRIPTION.CREATE_DIRECTORY.getDescription(),path,null);
+		publishOperationLogService.commonSaveOperationLog(Integer.parseInt(platform),Constants.OperationType.FOLDER.getValue(),null,null,Constants.OPERATION_DESCRIPTION.CREATE_DIRECTORY.getDescription(),path,null,0L);
 		return AjaxResult.success("创建成功");
 
     }
@@ -108,29 +109,44 @@ public class PublishCmsFilesServiceImpl implements IPublishCmsFilesService
 	 * @param platform
 	 */
 	@Override
-	public void batchDownloadFiles(String[] filePath, HttpServletResponse response, Integer platform) throws IOException {
+	public void batchDownloadFiles(String[] filePath, HttpServletResponse response,Integer platform) throws IOException {
 		//输出流
-		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-		ZipOutputStream zip = new ZipOutputStream(outputStream);
 
 		String fileName = "batchDownload.zip";
+//		20230128新增
+		response.reset();
+		response.setCharacterEncoding("utf-8");
+		response.setContentType("multipart/form-data");
+
+		//设置压缩流：直接写入response，实现边压缩边下载
+		ZipOutputStream zipos = null;
+		try {
+			zipos = new ZipOutputStream(new BufferedOutputStream(response.getOutputStream()));
+			zipos.setMethod(ZipOutputStream.DEFLATED); //设置压缩方法
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		String s = filePath[0];
+		File nameFile = new File(s);
+		File nameParentFile = nameFile.getParentFile();
+		fileName = nameParentFile.getName()+".zip";
+		response.setHeader("Content-Disposition", "attachment; filename="+ UrlEncoderUtils.encode(fileName));
+
 		//遍历进行判断
 		for (String path : filePath) {
 			path = path.replaceAll("\\\\", "/");
 			File file = new File(path);
-
 			File parentFile = file.getParentFile();
 			String parentParentPath = parentFile.getParentFile().toPath().toString();
-			fileName = parentFile.getName()+".zip";
 			if(file.isDirectory()){
 				parentParentPath = parentParentPath.replaceAll("\\\\", "/");
-                getDirectory(path, zip,parentParentPath,platform);
+                getDirectory(path, zipos,parentParentPath,platform);
 			}else {
 				String parentPath = file.getParentFile().toPath().toString();
 				parentParentPath = parentParentPath.replaceAll("\\\\", "/");
 
 				String replace = path.replace(parentParentPath+"/", "");
-				zip.putNextEntry(new ZipEntry(replace));
+				zipos.putNextEntry(new ZipEntry(replace));
 //				20220402增加判断当前的版本库最新的版本是否是混淆的
 				String name = file.getName();
 
@@ -151,20 +167,17 @@ public class PublishCmsFilesServiceImpl implements IPublishCmsFilesService
 				}
 
 				FileInputStream fin =new FileInputStream(file);
-				byte[] bytes = new byte[10240];
+				byte[] bytes = new byte[1024*8];
 				int len=fin.read(bytes);
 				while(len!=-1){
-					zip.write(bytes);
+					zipos.write(bytes,0,len);
 					len=fin.read(bytes);
 				}
-				zip.closeEntry();
+				zipos.closeEntry();
 				IOUtils.closeQuietly(fin);
 			}
 		}
-		IOUtils.closeQuietly(zip);
-		byte[] data = outputStream.toByteArray();
-		IOUtils.closeQuietly(outputStream);
-		genCode(response,data,fileName);
+		IOUtils.closeQuietly(zipos);
 	}
 
     @Override
@@ -173,20 +186,33 @@ public class PublishCmsFilesServiceImpl implements IPublishCmsFilesService
         String platformStr = request.getParameter("platform");
 		int platform = Integer.parseInt(platformStr);
 		File file = new File(path);
+
         if (file.isDirectory()) {
 //         文件夹的时候下载zip压缩文件
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-            ZipOutputStream zip = new ZipOutputStream(outputStream);
+//            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+//            ZipOutputStream zip = new ZipOutputStream(outputStream);
+
+			String fileName = file.getName()+".zip";
+//			20230128新增
+			response.reset();
+			response.setCharacterEncoding("utf-8");
+			response.setContentType("multipart/form-data");
+			response.setHeader("Content-Disposition", "attachment; filename="+ UrlEncoderUtils.encode(fileName));
 
 			String parentFile = file.getParentFile().toPath().toString();
 			parentFile = parentFile.replaceAll("\\\\", "/");
 
-            getDirectory(path, zip,parentFile,platform);
-            IOUtils.closeQuietly(zip);
-            byte[] data = outputStream.toByteArray();
-            String fileName = file.getName()+".zip";
-            genCode(response,data,fileName);
-            IOUtils.closeQuietly(outputStream);
+			//设置压缩流：直接写入response，实现边压缩边下载
+			ZipOutputStream zipos = null;
+			try {
+				zipos = new ZipOutputStream(new BufferedOutputStream(response.getOutputStream()));
+				zipos.setMethod(ZipOutputStream.DEFLATED); //设置压缩方法
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			getDirectory(path, zipos, parentFile,platform);
+			IOUtils.closeQuietly(zipos);
+
         }else {
 //          单个文件的时候直接下载流
 //			20220402增加判断当前的版本库最新的版本是否是混淆的
@@ -247,7 +273,7 @@ public class PublishCmsFilesServiceImpl implements IPublishCmsFilesService
 			}
 			if(entry.getKey()==logPlatform){
 				rootPath = entry.getValue();
-				bakRootPath = entry.getValue()+ Constants.CMS_BAK_PATH_SUFFIX;
+				bakRootPath = entry.getValue()+Constants.CMS_BAK_PATH_SUFFIX;
 				break;
 			}
 		}
@@ -257,7 +283,7 @@ public class PublishCmsFilesServiceImpl implements IPublishCmsFilesService
 			File file = new File(path);
 			if(file.isDirectory()){
 //				增加删除的最外层路径是目录的时候直接记录删除日志。
-				publishOperationLogService.commonSaveOperationLog(logPlatform,Constants.OperationType.FOLDER.getValue(),null,null,Constants.OPERATION_DESCRIPTION.DIRECTORY_DELETE.getDescription(), path,null);
+				publishOperationLogService.commonSaveOperationLog(logPlatform,Constants.OperationType.FOLDER.getValue(),null,null,Constants.OPERATION_DESCRIPTION.DIRECTORY_DELETE.getDescription(), path,null,0L);
 				delDir(file,rootPath,bakRootPath,logPlatform,sb);
 			}else {
 				String floderPath = file.getParentFile().toPath().toString();
@@ -362,7 +388,7 @@ public class PublishCmsFilesServiceImpl implements IPublishCmsFilesService
 //			删除现有文件
 //			记录版本日志和操作日志
 			Long i = publishFileVersionService.commonSavePublishFileVersion(logPlatform, 0, floderPath, name, bakPath, bakName, fileNameSuffix, fileSize, 1, maxVersionNum, null,obfuscateSourceName,1);
-			publishOperationLogService.commonSaveOperationLog(logPlatform,Constants.OperationType.FILE.getValue(),null,null,Constants.OPERATION_DESCRIPTION.FILE_DELETE.getDescription(), path,name);
+			publishOperationLogService.commonSaveOperationLog(logPlatform,Constants.OperationType.FILE.getValue(),null,null,Constants.OPERATION_DESCRIPTION.FILE_DELETE.getDescription(), path,name,i);
 
 		}catch (Exception e){
 			e.printStackTrace();
@@ -489,13 +515,13 @@ public class PublishCmsFilesServiceImpl implements IPublishCmsFilesService
 					}
 //					记录版本日志和操作日志
 					Long i1 = publishFileVersionService.commonSavePublishFileVersion(platform, 0, path, name, bakPath, renameBakName, fileNameSuffix, laterFile.length(), 0, maxVersionNum, null,renameObfuscateSourceName,1);
-					publishOperationLogService.commonSaveOperationLog(platform,Constants.OperationType.FILE.getValue(),null,null,Constants.OPERATION_DESCRIPTION.FILE_RENAME.getDescription(), path,name);
+					publishOperationLogService.commonSaveOperationLog(platform,Constants.OperationType.FILE.getValue(),null,null,Constants.OPERATION_DESCRIPTION.FILE_RENAME.getDescription(), path,name,i1);
 
 //					删除原有文件
 					pastFile.delete();
 //					记录版本日志和操作日志
 					Long i = publishFileVersionService.commonSavePublishFileVersion(platform, 0, path, pastName, bakPath, bakName, fileNameSuffix, pastFile.length(), 1, maxVersionNum, null,obfuscateSourceName,1);
-					publishOperationLogService.commonSaveOperationLog(platform,Constants.OperationType.FILE.getValue(),null,null,Constants.OPERATION_DESCRIPTION.FILE_DELETE.getDescription(), path,pastName);
+					publishOperationLogService.commonSaveOperationLog(platform,Constants.OperationType.FILE.getValue(),null,null,Constants.OPERATION_DESCRIPTION.FILE_DELETE.getDescription(), path,pastName,i);
 
 
 				}catch (Exception e){
@@ -505,7 +531,7 @@ public class PublishCmsFilesServiceImpl implements IPublishCmsFilesService
 						IoUtil.getFile(name,path).delete();
 //						记录失败日志到数据库
 						publishOperationLogService.commonSaveOperationLog(platform,Constants.OperationType.FILE.getValue(),null,null,Constants.OPERATION_DESCRIPTION.FILE_RENAME.getDescription()+Constants.OPERATION_DESCRIPTION.OPERATION_FAILED.getDescription(),
-								path,pastName);
+								path,pastName,0L);
 					}catch (Exception ee){
 						ee.printStackTrace();
 						return AjaxResult.error("重命名异常："+e.getMessage()+ee.getMessage());
@@ -531,7 +557,7 @@ public class PublishCmsFilesServiceImpl implements IPublishCmsFilesService
                 IoUtil.getFile(name,path).delete();
 //				记录失败日志到数据库
 				publishOperationLogService.commonSaveOperationLog(platform,Constants.OperationType.FILE.getValue(),null,null,Constants.OPERATION_DESCRIPTION.FILE_RENAME.getDescription()+Constants.OPERATION_DESCRIPTION.OPERATION_FAILED.getDescription(),
-                        path,pastName);
+                        path,pastName,0L);
             }catch (Exception ee){
                 ee.printStackTrace();
                 return AjaxResult.error("重命名异常："+e.getMessage()+ee.getMessage());
@@ -620,7 +646,7 @@ public class PublishCmsFilesServiceImpl implements IPublishCmsFilesService
 				continue;
 			}
 //			先判断名称是否包含搜索名称，不包含的时候直接跳过
-			if(!"no".equals(filterFlag)&& StringUtils.isNotEmpty(putName)&&!fileName.toLowerCase().contains(putName.toLowerCase())){
+			if(!"no".equals(filterFlag)&&StringUtils.isNotEmpty(putName)&&!fileName.toLowerCase().contains(putName.toLowerCase())){
 				continue;
 			}
 			PublishFileVersion publishFileVersion = new PublishFileVersion();
@@ -714,7 +740,7 @@ public class PublishCmsFilesServiceImpl implements IPublishCmsFilesService
 	 * @param data
 	 * @throws IOException
 	 */
-	private void genCode(HttpServletResponse response, byte[] data, String fileName) throws IOException
+	private void genCode(HttpServletResponse response, byte[] data,String fileName) throws IOException
 	{
 		response.reset();
 		response.setHeader("Content-Disposition", "attachment; filename="+ UrlEncoderUtils.encode(fileName));
@@ -767,10 +793,10 @@ public class PublishCmsFilesServiceImpl implements IPublishCmsFilesService
 
 				FileInputStream fin =new FileInputStream(getFile);
 
-				byte[] bytes = new byte[10240];
+				byte[] bytes = new byte[1024*8];
 				int len=fin.read(bytes);
 				while(len!=-1){
-					zip.write(bytes);
+					zip.write(bytes,0,len);
 					len=fin.read(bytes);
 				}
 				zip.closeEntry();

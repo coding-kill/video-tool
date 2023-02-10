@@ -8,6 +8,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 文件版本 服务层
@@ -47,7 +48,7 @@ public interface IPublishCmsFilesService
 	 * @param platform
 	 * @throws IOException
 	 */
-	void batchDownloadFiles(String[] filePath, HttpServletResponse response, Integer platform)throws IOException;
+	void batchDownloadFiles(String[] filePath, HttpServletResponse response,Integer platform)throws IOException;
 
 	/**
 	 * 文件下载的方法
@@ -63,7 +64,7 @@ public interface IPublishCmsFilesService
 	 * @param platform
 	 * @return
 	 */
-	AjaxResult deleteFile(String[] filePath, String platform);
+	AjaxResult deleteFile(String[] filePath,String platform);
 
 	/**
 	 * 文件重命名

@@ -106,10 +106,11 @@ public class PublishOperationLogServiceImpl implements IPublishOperationLogServi
 	 * @param logName
 	 * @param path
 	 * @param fileName
+	 * @param fileVersionId
 	 * @return
 	 */
 	@Override
-	public int commonSaveOperationLog(int platform,int operationType,Long jobId,Long detailId,String logName,String path,String fileName) {
+	public int commonSaveOperationLog(int platform,int operationType,Long jobId,Long detailId,String logName,String path,String fileName,Long fileVersionId) {
 		PublishOperationLog publishOperationLog = new PublishOperationLog();
 		publishOperationLog.setPlatform(platform);
 		publishOperationLog.setOperationType(operationType);
@@ -120,6 +121,7 @@ public class PublishOperationLogServiceImpl implements IPublishOperationLogServi
 		publishOperationLog.setFileName(fileName);
 		publishOperationLog.setCreateDate(new Date());
 		publishOperationLog.setCreateUser(ShiroUtils.getUserId());
+		publishOperationLog.setFileVersionId(fileVersionId);
 
 		int i = publishOperationLogMapper.insertPublishOperationLog(publishOperationLog);
 

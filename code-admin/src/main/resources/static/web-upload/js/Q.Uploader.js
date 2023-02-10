@@ -407,6 +407,13 @@
 
             //文件选择事件
             addEvent(inputFile, "change", function (e) {
+                // 20230113增加，单选文件的时候，增加提示是否上传的确认框。
+                if(!self.isDir){
+                    //    不是文件夹的时候添加确认提示
+                    if(confirm("确认上传文件么") == false){
+                        return;
+                    }
+                }
                 self.add(this);
 
                 //html4 重置上传控件

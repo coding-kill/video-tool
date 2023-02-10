@@ -18,10 +18,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="createUser"    column="create_user"    />
         <result property="updateDate"    column="update_date"    />
         <result property="updateUser"    column="update_user"    />
+        <result property="fileVersionId"    column="file_version_id"    />
     </resultMap>
 	
 	<sql id="selectPublishOperationLogVo">
-        select id, platform, operation_type, job_id, detail_id, log_name, path, file_name, is_valid, create_date, create_user, update_date, update_user from ei_publish_operation_log
+        select id, platform, operation_type, job_id, detail_id, log_name, path, file_name, is_valid, create_date, create_user, update_date, update_user,file_version_id from ei_publish_operation_log
     </sql>
 	
     <select id="selectPublishOperationLogList" parameterType="PublishOperationLog" resultMap="PublishOperationLogResult">
@@ -70,6 +71,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 			<if test="createUser != null  ">create_user,</if>
 			<if test="updateDate != null  ">update_date,</if>
 			<if test="updateUser != null  ">update_user,</if>
+			<if test="fileVersionId != null  ">file_version_id,</if>
          </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
 			<if test="platform != null  ">#{platform},</if>
@@ -84,6 +86,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 			<if test="createUser != null  ">#{createUser},</if>
 			<if test="updateDate != null  ">#{updateDate},</if>
 			<if test="updateUser != null  ">#{updateUser},</if>
+			<if test="fileVersionId != null  ">#{fileVersionId},</if>
          </trim>
     </insert>
 	 
@@ -102,6 +105,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="createUser != null  ">create_user = #{createUser},</if>
             <if test="updateDate != null  ">update_date = #{updateDate},</if>
             <if test="updateUser != null  ">update_user = #{updateUser},</if>
+            <if test="fileVersionId != null  ">file_version_id = #{fileVersionId},</if>
         </trim>
         where id = #{id}
     </update>
@@ -140,6 +144,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="createEndDate != null ">
                 <![CDATA[ and create_date <= #{createEndDate} ]]>
             </if>
+            <if test="nowPath != null  and nowPath != '' "> and path = #{nowPath}</if>
+            <if test="likePath != null  and likePath != '' "> and path like concat('%', #{likePath}, '%')</if>
         </where>
     </select>
 

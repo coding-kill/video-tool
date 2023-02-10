@@ -57,7 +57,22 @@ public class WebUploadController extends BaseController
     }
 
 
-
+    @GetMapping("/newWebUpload")
+    public String newWebUpload(HttpServletRequest request, HttpServletResponse response)throws Exception
+    {
+        String path = request.getParameter("path");
+        if(StringUtils.isNotEmpty(path)){
+            try {
+                path = java.net.URLDecoder.decode(path,"UTF-8");
+            } catch (UnsupportedEncodingException e) {
+                e.printStackTrace();
+                throw e;
+            }
+        }
+        request.setAttribute("platform",request.getParameter("platform"));
+        request.setAttribute("path",path);
+        return prefix + "/newUpload";
+    }
 
 
 

@@ -31,7 +31,7 @@ public class FileUtils {
 public static void main(String[] args) {
     Set<String> md5Set = new HashSet<>();
     Map<String,Object> md5Map = new HashMap<>();
-    String path = "D:\\";
+    String path = "E:\\java资料";
     File file = new File(path);
     if(file.isDirectory()){
         getDirectoryChildMd5(path, md5Set,md5Map);

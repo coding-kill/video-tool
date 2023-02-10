@@ -46,6 +46,13 @@ public class PublishOperationLog extends BaseEntity
 	private String createUserName;
 	private Date createStartDate;
 	private Date createEndDate;
+	/** 当前目录 */
+	private String nowPath;
+	/** 模糊目录 */
+	private String likePath;
+    /** 文件版本id */
+    private Long fileVersionId;
+
 
 	public void setId(Long id) 
 	{
@@ -167,7 +174,7 @@ public class PublishOperationLog extends BaseEntity
 
 	@Override
     public String toString() {
-        return new ToStringBuilder(this, ToStringStyle.MULTI_LINE_STYLE)
+        return new ToStringBuilder(this,ToStringStyle.MULTI_LINE_STYLE)
             .append("id", getId())
             .append("platform", getPlatform())
             .append("operationType", getOperationType())
@@ -207,4 +214,28 @@ public class PublishOperationLog extends BaseEntity
 	public void setCreateEndDate(Date createEndDate) {
 		this.createEndDate = createEndDate;
 	}
+
+	public String getNowPath() {
+		return nowPath;
+	}
+
+	public void setNowPath(String nowPath) {
+		this.nowPath = nowPath;
+	}
+
+	public String getLikePath() {
+		return likePath;
+	}
+
+	public void setLikePath(String likePath) {
+		this.likePath = likePath;
+	}
+
+    public Long getFileVersionId() {
+        return fileVersionId;
+    }
+
+    public void setFileVersionId(Long fileVersionId) {
+        this.fileVersionId = fileVersionId;
+    }
 }

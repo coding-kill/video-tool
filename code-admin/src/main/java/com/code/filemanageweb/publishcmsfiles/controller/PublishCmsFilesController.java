@@ -239,6 +239,11 @@ public class PublishCmsFilesController extends BaseController
         request.setAttribute("path",path);
         request.setAttribute("platform",platform);
 
+        String fileName = request.getParameter("fileName");
+        if(StringUtils.isNotEmpty(fileName)){
+            request.setAttribute("name",fileName);
+        }
+
         return prefix + "/publishCmsFileVersion";
     }
 
@@ -311,6 +316,14 @@ public class PublishCmsFilesController extends BaseController
 		mmap.put("platformList", platformList);
 
 		return prefix + "/baokaozhinancmsfiles";
+	}
+
+	@GetMapping("/main")
+	public String main(ModelMap mmap)
+	{
+//		默认的pc的根路径
+
+		return prefix + "/main";
 	}
 
 }

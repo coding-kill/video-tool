@@ -83,5 +83,5 @@ public interface PublishFileVersionMapper
 	 * @param name
 	 * @return
 	 */
-    PublishFileVersion getLastFileVersion(@Param("platform") Integer platform, @Param("path") String path, @Param("name") String name);
+    PublishFileVersion getLastFileVersion(@Param("platform") Integer platform,@Param("path") String path, @Param("name") String name);
 }

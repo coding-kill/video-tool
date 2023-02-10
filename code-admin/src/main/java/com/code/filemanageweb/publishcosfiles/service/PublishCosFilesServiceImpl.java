@@ -27,6 +27,7 @@ import org.springframework.stereotype.Service;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.*;
@@ -182,6 +183,10 @@ public class PublishCosFilesServiceImpl implements IPublishCosFilesService {
                             //不展示
                             continue;
                         }
+                        if(StringUtils.isEmpty(fileName)){
+                            //线上空文件名的，不展示
+                            continue;
+                        }
                     }
                     cont.setFileName(fileName);
                     cont.setFileSize(cosobj.getSize());
@@ -273,8 +278,14 @@ public class PublishCosFilesServiceImpl implements IPublishCosFilesService {
     public void downloadDirectory(HttpServletRequest request, HttpServletResponse response) throws IOException {
         String title = request.getParameter("title");
         //输出流
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        ZipOutputStream zip = new ZipOutputStream(outputStream);
+        String sub = title.substring(0, title.lastIndexOf("/"));
+        String fileName = sub.substring(sub.lastIndexOf("/") + 1, sub.length())+".zip";
+
+
+        response.reset();
+        response.setCharacterEncoding("utf-8");
+        response.setContentType("multipart/form-data");
+        response.setHeader("Content-Disposition", "attachment; filename="+ UrlEncoderUtils.encode(fileName));
 
         CosClientUtil cosClientUtil = new CosClientUtil();
         String prefix = title;
@@ -283,14 +294,17 @@ public class PublishCosFilesServiceImpl implements IPublishCosFilesService {
         //期望这样的前缀 prefix = a-2022-test/
         prefix = prefix.substring(0,prefix.lastIndexOf("/")+1);
         //获取腾讯云目录及文件
-        getDirectory(title, zip, cosClientUtil,prefix);
 
-        IOUtils.closeQuietly(zip);
-        byte[] data = outputStream.toByteArray();
-        String sub = title.substring(0, title.lastIndexOf("/"));
-        String fileName = sub.substring(sub.lastIndexOf("/") + 1, sub.length())+".zip";
-        IOUtils.closeQuietly(outputStream);
-        genCode(response,data,fileName);
+        //设置压缩流：直接写入response，实现边压缩边下载
+        ZipOutputStream zipos = null;
+        try {
+            zipos = new ZipOutputStream(new BufferedOutputStream(response.getOutputStream()));
+            zipos.setMethod(ZipOutputStream.DEFLATED); //设置压缩方法
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        getDirectory(title, zipos, cosClientUtil,prefix);
+        IOUtils.closeQuietly(zipos);
 
     }
 
@@ -318,9 +332,22 @@ public class PublishCosFilesServiceImpl implements IPublishCosFilesService {
             fileName = replace1+".zip";
         }
         String[] filePath = Convert.toStrArray(filePaths);
+
+//      20230128新增加
+        response.reset();
+        response.setCharacterEncoding("utf-8");
+        response.setContentType("multipart/form-data");
+        response.setHeader("Content-Disposition", "attachment; filename="+ UrlEncoderUtils.encode(fileName));
+        //设置压缩流：直接写入response，实现边压缩边下载
+        ZipOutputStream zipos = null;
+        try {
+            zipos = new ZipOutputStream(new BufferedOutputStream(response.getOutputStream()));
+            zipos.setMethod(ZipOutputStream.DEFLATED); //设置压缩方法
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         //输出流
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        ZipOutputStream zip = new ZipOutputStream(outputStream);
         CosClientUtil cosClientUtil = new CosClientUtil();
 
         //遍历进行判断  ei-dongao/image/common/abc.jpg
@@ -332,7 +359,7 @@ public class PublishCosFilesServiceImpl implements IPublishCosFilesService {
                     title = cosProperties.getBucketName()+"/"+title;
                 }
                 //目录
-                getDirectory(title, zip, cosClientUtil,prefix);
+                getDirectory(title, zipos, cosClientUtil,prefix);
             }else {
                 //文件 ei-dongao/image/common
                 String replace;
@@ -344,7 +371,6 @@ public class PublishCosFilesServiceImpl implements IPublishCosFilesService {
                     int i = substring.lastIndexOf("/") + 1;
                     replace = title.substring(i,length);
                 }
-                zip.putNextEntry(new ZipEntry(replace));
                 //下载前需要判断是否有混淆情况
                 String filetype = "";
                 if (replace.contains(".")) {
@@ -355,7 +381,12 @@ public class PublishCosFilesServiceImpl implements IPublishCosFilesService {
                     if ("placeholder-file".equals(substring)) {
                         continue;
                     }
+//                      20221206增加解决打包下载报错问题
+                    if(StringUtils.isEmpty(substring)){
+                        continue;
+                    }
                 }
+                zipos.putNextEntry(new ZipEntry(replace));
                 String filepath = title.substring(0, slash);
                 if ("js".equals(filetype.toLowerCase()) || "css".equals(filetype.toLowerCase())) {
                     PublishFileVersion publishFileVersion = publishFileVersionService.getLastFileVersion(Constants.Platform.COS.getValue(),filepath,replace);
@@ -370,16 +401,12 @@ public class PublishCosFilesServiceImpl implements IPublishCosFilesService {
                     }
                 }
                 byte[] bytes = cosClientUtil.getObject(title);
-                IOUtils.write(bytes, zip);
-                zip.closeEntry();
+                IOUtils.write(bytes, zipos);
+                zipos.closeEntry();
             }
         }
+        IOUtils.closeQuietly(zipos);
 
-        IOUtils.closeQuietly(zip);
-        byte[] data = outputStream.toByteArray();
-        //String fileName = "batchDownload.zip";
-        IOUtils.closeQuietly(outputStream);
-        genCode(response,data,fileName);
         long end = System.currentTimeMillis();
         System.out.println("======批量下载结束======"+ end);
         long res = (end - start)/1000;
@@ -413,7 +440,7 @@ public class PublishCosFilesServiceImpl implements IPublishCosFilesService {
      * 复制文件到备份目录
      * @param title
      * @param cosClientUtil
-     * @throws
+     * @throws StreamException
      */
     private int copyFile(String title, CosClientUtil cosClientUtil,Long fileSize,int delFlag,String oldtitle,
                          String logName){
@@ -516,7 +543,7 @@ public class PublishCosFilesServiceImpl implements IPublishCosFilesService {
             try {
                 publishOperationLogService.commonSaveOperationLog(Constants.Platform.COS.getValue(),
                         Constants.OperationType.FOLDER.getValue(),null,
-                        null,Constants.OPERATION_DESCRIPTION.DIRECTORY_DELETE.getDescription(), title,null);
+                        null,Constants.OPERATION_DESCRIPTION.DIRECTORY_DELETE.getDescription(), title,null,0L);
                 cosClientUtil.deleteObjects(title);
             }catch (MultiObjectDeleteException mde) {
                 // 如果部分删除成功部分失败, 返回 MultiObjectDeleteException
@@ -635,7 +662,7 @@ public class PublishCosFilesServiceImpl implements IPublishCosFilesService {
             publishOperationLogService.commonSaveOperationLog(Constants.Platform.COS.getValue(),
                     Constants.OperationType.FOLDER.getValue(),
                     null,null,
-                    Constants.OPERATION_DESCRIPTION.CREATE_DIRECTORY.getDescription(),title,null);
+                    Constants.OPERATION_DESCRIPTION.CREATE_DIRECTORY.getDescription(),title,null,0L);
             return 1;
         }
         return 0;
@@ -737,6 +764,10 @@ public class PublishCosFilesServiceImpl implements IPublishCosFilesService {
                         if ("placeholder-file".equals(substring)) {
                             continue;
                         }
+//                      20221206增加解决打包下载报错问题
+                        if(StringUtils.isEmpty(substring)){
+                            continue;
+                        }
                     }
                     if ("js".equals(filetype.toLowerCase()) || "css".equals(filetype.toLowerCase())) {
                         PublishFileVersion publishFileVersion = publishFileVersionService.getLastFileVersion(Constants.Platform.COS.getValue(),prefix,replace);
@@ -766,7 +797,7 @@ public class PublishCosFilesServiceImpl implements IPublishCosFilesService {
      * @param data
      * @throws IOException
      */
-    private void genCode(HttpServletResponse response, byte[] data, String fileName) throws IOException
+    private void genCode(HttpServletResponse response, byte[] data,String fileName) throws IOException
     {
         response.reset();
         response.setHeader("Content-Disposition", "attachment; filename="+ UrlEncoderUtils.encode(fileName));

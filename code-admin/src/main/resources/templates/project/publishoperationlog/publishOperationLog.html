@@ -21,11 +21,17 @@
 							</li>
 
 							<li>
-								文件名：<input type="text" name="fileName"/>
+								文件名：<input type="text" name="fileName" th:value="${fileName}" />
 							</li>
 
 							<li>
-								目录名：<input type="text" name="path"/>
+								目录名(纯模糊)：<input type="text" name="likePath"  />
+							</li>
+							<li>
+								目录名(前缀)：<input type="text" name="path" th:value="${path}" />
+							</li>
+							<li>
+								目录名(当前)：<input type="text" name="nowPath" th:value="${nowPath}" />
 							</li>
 
 							<li>
@@ -94,13 +100,13 @@
                         if (row.platform === 1) {
                             return '腾讯云';
                         }else if (row.platform === 2) {
-                            return '画东风在线PC';
+                            return '东奥在线PC';
                         }else if (row.platform === 3) {
-                            return '画东风在线H5';
+                            return '东奥在线H5';
                         }else if (row.platform === 4) {
-                            return '画东风专题PC';
+                            return '东奥专题PC';
                         }else if (row.platform === 5) {
-                            return '画东风专题H5';
+                            return '东奥专题H5';
                         }else {
                             return '-';
                         }
@@ -132,9 +138,9 @@
 						if (showname == null) {
 							return "-";
 						}
-						if (showname.length > 15) {
-							showname = showname.substr(0, 14) + "...";
-						}
+						// if (showname.length > 15) {
+						// 	showname = showname.substr(0, 14) + "...";
+						// }
 						var html = "<div title='"+value+"'>"+showname+"</div>";
 						return html;
 					},
@@ -148,9 +154,9 @@
 						if (showname == null) {
 							return "-";
 						}
-						if (showname.length > 15) {
-							showname = showname.substr(0, 14) + "...";
-						}
+						// if (showname.length > 15) {
+						// 	showname = showname.substr(0, 14) + "...";
+						// }
 						var html = "<div title='"+value+"'>"+showname+"</div>";
 						return html;
 					}
@@ -163,7 +169,36 @@
 					field : 'createDate',
 					title : '操作时间',
 					sortable: true
-				}]
+				},
+                {
+                    title: '操作',
+                    align: 'left',
+                    cellStyle: function (value, row, index) {
+                        return {css: {"overflow": "hidden", "text-overflow": "ellipsis", "white-space": "nowrap"}}
+                    },
+                    formatter: function(value, row, index) {
+                        var actions = [];
+                        if(row.operationType === 2){
+
+                            var actions = [];
+                            if(row.platform === 1){
+                            //    走腾讯云
+                                actions.push('<a class="btn btn-primary btn-xs " href="javascript:void(0)" onclick="getCosHistoryVersion(\'' + row.platform + '\',\''+row.path+'\',\''+row.fileName+'\')"><i class="fa fa-history"></i>历史版本</a> ');
+                                if(row.fileVersionId != 0){
+                                    actions.push(' <a class="btn btn-primary btn-xs " href="javascript:void(0)" onclick="cosDownloadFile(\'' + row.fileVersionId +'\')"><i class="fa fa-download"></i>下载</a>  ');
+                                }
+
+                            }else {
+                            //    走cms
+                                actions.push('<a class="btn btn-primary btn-xs " href="javascript:void(0)" onclick="getCmsHistoricVersion(\'' + row.platform + '\',\''+row.path+'\',\''+row.fileName+'\')"><i class="fa fa-history"></i>历史版本</a> ');
+                                if(row.fileVersionId != 0){
+                                    actions.push(' <a class="btn btn-primary btn-xs " href="javascript:void(0)" onclick="cmsDownloadFile(\'' + row.fileVersionId +'\')"><i class="fa fa-download"></i>下载</a>  ');
+                                }
+                            }
+                        }
+                        return actions.join('');
+                    }
+                }]
             };
             $.table.init(options);
 
@@ -255,6 +290,32 @@
 			}
 			$.table.search();
 		}
+
+        //查看cms目录的历史版本
+        function  getCmsHistoricVersion(platform,path,fileName){
+            $.modal.openTab('历史版本',ctx + "project/publishCmsFiles/getHistoricVersion/?platform="+platform+"&path="+path+"&fileName="+fileName);
+        }
+
+        //查看腾讯云目录的历史版本
+        function getCosHistoryVersion(platform,path,fileName){
+            $.modal.openTab('历史版本',ctx + "project/publishCosFiles/getHistoryVersion?platform="+platform+"&title="+path+"&fileName="+fileName);
+        }
+
+
+        //下载文件
+        function cmsDownloadFile(fileVersionId) {
+            $.modal.confirm("确认要下载文件的版本吗?", function() {
+                location.href = prefix + "/cmsDownloadFile?fileVersionId="+fileVersionId;
+                layer.msg('文件下载中，请稍后…', { icon: 1 });
+            });
+        }
+        //下载文件
+        function cosDownloadFile(fileVersionId) {
+            $.modal.confirm("确认要下载文件版本吗?", function() {
+                location.href = prefix + "/cosDownloadFile?fileVersionId="+fileVersionId;
+                layer.msg('文件下载中，请稍后…', { icon: 1 });
+            });
+        }
 
     </script>
 </body>

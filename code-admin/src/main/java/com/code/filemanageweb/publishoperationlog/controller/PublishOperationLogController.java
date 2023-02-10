@@ -1,20 +1,29 @@
 package com.code.filemanageweb.publishoperationlog.controller;
 
 import com.code.config.constants.Constants;
+import com.code.filemanageweb.publishfileversion.domain.PublishFileVersion;
+import com.code.filemanageweb.publishfileversion.service.IPublishFileVersionService;
 import com.code.filemanageweb.publishoperationlog.domain.PublishOperationLog;
 import com.code.filemanageweb.publishoperationlog.service.IPublishOperationLogService;
+import com.code.util.CosClientUtil;
+import com.qcloud.cos.utils.UrlEncoderUtils;
 import com.ruoyi.common.annotation.Log;
 import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.common.enums.BusinessType;
+import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.common.utils.poi.ExcelUtil;
+import org.apache.commons.io.IOUtils;
 import org.apache.shiro.authz.annotation.RequiresPermissions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.*;
 import java.util.*;
 
 /**
@@ -31,10 +40,14 @@ public class PublishOperationLogController extends BaseController
 	
 	@Autowired
 	private IPublishOperationLogService publishOperationLogService;
+
+	@Autowired
+	private IPublishFileVersionService publishFileVersionService;
+
 	
 	@RequiresPermissions("project:publishOperationLog:view")
 	@GetMapping()
-	public String publishOperationLog(ModelMap mmap) {
+	public String publishOperationLog(ModelMap mmap, HttpServletRequest request) {
 		List<Map<String,Object>> platformList = new ArrayList<>();
 
 		Set<Map.Entry<Integer, String>> entries = Constants.Platform.typeMap.entrySet();
@@ -46,6 +59,17 @@ public class PublishOperationLogController extends BaseController
 		}
 		mmap.put("platformList", platformList);
 
+		String fileName = request.getParameter("fileName");
+		String path = request.getParameter("path");
+		if(StringUtils.isNotEmpty(path)){
+
+			if(StringUtils.isNotEmpty(fileName)){
+				request.setAttribute("fileName",fileName);
+				request.setAttribute("nowPath",path);
+			}else {
+				request.setAttribute("path",path);
+			}
+		}
 	    return prefix + "/publishOperationLog";
 	}
 	
@@ -130,6 +154,90 @@ public class PublishOperationLogController extends BaseController
 	public AjaxResult remove(String ids)
 	{		
 		return toAjax(publishOperationLogService.deletePublishOperationLogByIds(ids));
+	}
+
+	/**
+	 * 下载文件
+	 */
+	@RequiresPermissions("project:publishOperationLog:download")
+	@RequestMapping("/cmsDownloadFile")
+	@ResponseBody
+	public void cmsDownloadFile(HttpServletResponse response, HttpServletRequest request) throws Exception
+	{
+		String fileVersionId = request.getParameter("fileVersionId");
+
+		PublishFileVersion publishFileVersion = publishFileVersionService.selectPublishFileVersionById(Long.parseLong(fileVersionId));
+		Integer obfuscateFlag = publishFileVersion.getObfuscateFlag();
+
+		String path = publishFileVersion.getBakPathPrefix()+"/"+publishFileVersion.getBakName();
+		if(obfuscateFlag.equals(1)){
+			path = publishFileVersion.getBakPathPrefix()+"/"+publishFileVersion.getObfuscateSourceName();
+		}
+		File file = new File(path);
+
+//      单个文件的时候直接下载流
+//		20220402增加判断当前的版本库最新的版本是否是混淆的
+		String name = file.getName();
+
+		FileInputStream fis = new FileInputStream(file);
+		BufferedInputStream bis = new BufferedInputStream(fis, 1024);
+		ByteArrayOutputStream bos = new ByteArrayOutputStream(1024);
+		byte[] cache = new byte[1024];
+		int length = 0;
+		while ((length = bis.read(cache)) != -1) {
+			bos.write(cache, 0, length);
+		}
+		byte[] data = bos.toByteArray();
+		genCode(response, data, name);
+		IOUtils.closeQuietly(bos);
+		IOUtils.closeQuietly(bis);
+		IOUtils.closeQuietly(fis);
+
+	}
+
+	/**
+	 * 下载文件
+	 */
+	@RequiresPermissions("project:publishOperationLog:download")
+	@RequestMapping("/cosDownloadFile")
+	@ResponseBody
+	public void cosDownloadFile(HttpServletResponse response, HttpServletRequest request) throws Exception
+	{
+		String fileVersionId = request.getParameter("fileVersionId");
+
+		PublishFileVersion publishFileVersion = publishFileVersionService.selectPublishFileVersionById(Long.parseLong(fileVersionId));
+		Integer obfuscateFlag = publishFileVersion.getObfuscateFlag();
+
+		String path = publishFileVersion.getBakPathPrefix()+"/"+publishFileVersion.getBakName();
+		if(obfuscateFlag.equals(1)){
+			path = publishFileVersion.getBakPathPrefix()+"/"+publishFileVersion.getObfuscateSourceName();
+		}
+		File file = new File(path);
+
+//      单个文件的时候直接下载流
+//		20220402增加判断当前的版本库最新的版本是否是混淆的
+		String name = file.getName();
+
+		CosClientUtil cosClientUtil = new CosClientUtil();
+		byte[] data = cosClientUtil.getObject(path);
+		genCode(response, data, name);
+
+	}
+
+	/**
+	 * 生成文件 or 生成zip文件
+	 *
+	 * @param response
+	 * @param data
+	 * @throws IOException
+	 */
+	private void genCode(HttpServletResponse response, byte[] data,String fileName) throws IOException
+	{
+		response.reset();
+		response.setHeader("Content-Disposition", "attachment; filename="+ UrlEncoderUtils.encode(fileName));
+		response.addHeader("Content-Length", "" + data.length);
+		response.setContentType("application/octet-stream; charset=UTF-8");
+		IOUtils.write(data, response.getOutputStream());
 	}
 	
 }

@@ -15,6 +15,14 @@
     <form class="form-horizontal m">
         <input type="hidden" id="platform" name="platform" th:value="${platform}">
         <input type="hidden" id="path" name="path" th:value="${path}">
+
+        <div class="form-group">
+            <label class="col-sm-2 control-label" style="width: 21%">当前上传目录：</label>
+            <div class="col-sm-6">
+                <input disabled="" id="viewPath" name="viewPath" th:value="${path}" class="form-control">
+            </div>
+        </div>
+
         <div class="form-group">
             <label class="col-sm-1 control-label"></label>
             <div class="col-sm-9">
@@ -25,20 +33,20 @@
             <label class="col-sm-2 control-label" style="width: 18%">css混淆：</label>
             <div class="col-sm-2">
                 <label class="toggle-switch switch-solid">
-                    <input type="checkbox" id="cssparam" checked=""> <span></span>
+                    <input type="checkbox" id="cssparam" > <span></span>
                 </label>
             </div>
             <label class="col-sm-2 control-label">js混淆：</label>
             <div class="col-sm-2">
                 <label class="toggle-switch switch-solid">
-                    <input type="checkbox" id="jsparam" checked=""> <span></span>
+                    <input type="checkbox" id="jsparam" > <span></span>
                 </label>
             </div>
         </div >
         <div class="form-group">
             <label class="col-sm-2 control-label" style="width: 16%">备注：</label>
             <div class="col-sm-6">
-                <input id="remark" name="remark" value="默认备注" class="form-control"/>
+                <input id="remark" name="remark" placeholder="请在选择文件之前填写" class="form-control"/>
             </div>
         </div>
         <div class="form-group">
@@ -70,7 +78,7 @@
 <div th:include="include::footer"></div>
 
 <script type="text/javascript">
-    window.UPLOAD_URL = "project/webUpload/upload/";
+    window.UPLOAD_URL = "/project/webUpload/upload/";
 
     function log(msg) {
         document.getElementById("log").innerHTML += (msg != undefined ? msg : "") + "<br />";
@@ -119,7 +127,7 @@
 
     var Uploader = Q.Uploader;
     var q = new Uploader({
-        url: ctx + UPLOAD_URL,
+        url: UPLOAD_URL,
         //urlForQuery: UPLOAD_URL,  //秒传或分片上传查询接口，未指定时默认使用上传接口
 
         target: [document.getElementById("upload-folder-target"),document.getElementById("upload-one-target")],
@@ -285,6 +293,7 @@
     function commonUptadeParent(){
         $.modal.close();
         parent.$.table.refresh();
+        parent.$.form.reset();
         parent.refreshMyTree($("#path").val());
     }
 

@@ -24,6 +24,16 @@
 			padding-bottom: 6px;
 			box-shadow: 1px 1px 3px rgba(0,0,0,.2);
 		}
+
+        body .demo-class .layui-layer-setwin .layui-layer-close1{
+            background-position: -148px -33px;
+            cursor: pointer;
+            cursor: pointer;
+            width: 35px;
+            height: 35px;
+            top: -6px;
+        }
+
 	</style>
 
 </head>
@@ -76,16 +86,20 @@
 								<!--<a class="btn btn btn-success btn-rounded btn-sm" onclick="streamUpload()" shiro:hasPermission="project:publishCosFiles:upload"><i class="fa fa-upload"></i>&nbsp;旧上传插件</a>-->
 							<!--</li>-->
 							<li>
-								<a class="btn btn-primary" onclick="createFolder()" shiro:hasPermission="project:publishCmsFiles:createFolder"><i class="fa fa-folder"></i>&nbsp;创建文件夹</a>
+								<a class="btn btn-info" onclick="newWebUpload()" shiro:hasPermission="project:publishCmsFiles:newUpload"><i class="fa fa-upload"></i>新上传</a>
 							</li>
 							<li>
-								<a class="btn btn-danger btn-del" onclick="topBatchDelFiles()"  shiro:hasPermission="project:publishCmsFiles:remove"><i class="fa fa-trash-o"></i>&nbsp;删除</a>
+								<a class="btn btn-primary" onclick="createFolder()" shiro:hasPermission="project:publishCmsFiles:createFolder"><i class="fa fa-folder"></i>&nbsp;创建文件夹</a>
 							</li>
 							<li>
 								<a class="btn btn-primary btn-del" onclick="batchDownloadFiles()" shiro:hasPermission="project:publishCosFiles:batchDownload"><i class="fa fa-download"></i>&nbsp;批量下载</a>
 							</li>
 							<li>
 								<a class="btn btn-info" onclick="getHistoricVersion()" shiro:hasPermission="project:publishCmsFiles:getHistoricVersion"><i class="fa fa-history"></i>&nbsp;历史版本</a>
+							</li>
+							<li>
+								&nbsp;&nbsp;&nbsp;&nbsp;
+								<a class="btn btn-danger btn-del" onclick="topBatchDelFiles()"  shiro:hasPermission="project:publishCmsFiles:remove"><i class="fa fa-trash-o"></i>&nbsp;批量删除</a>
 							</li>
 						</ul>
 					</div>
@@ -136,6 +150,10 @@
         var downloadFlag = [[${@permission.hasPermi('project:publishCmsFiles:download')}]];
         var removeFlag = [[${@permission.hasPermi('project:publishCmsFiles:remove')}]];
         var RenameFlag = [[${@permission.hasPermi('project:publishCmsFiles:rename')}]];
+        var publishOperationLogFlag = [[${@permission.hasPermi('project:publishOperationLog:view')}]];
+		var codeonlineFlag = [[${@permission.hasPermi('project:publishCosFiles:codeOnline')}]];
+		var cosPrefix = ctx + "project/publishCosFiles";
+
 
         var folderImg = "../img/folder.png";
         var fileImg = "../img/file.png";
@@ -174,9 +192,6 @@
                     sortable:true,
                     formatter: function(value, row, index) {
 						var showname = value;
-						if (value.length > 15) {
-							showname = value.substr(0,14)+"...";
-						}
 		                if (row.folderFlag) {
                             var path = row.path;
                             return '<a href="#" onclick="fileNameClick('+"'"+path+"'"+')" title="'+value+'"><i class="fa fa-folder"></i>&nbsp;'+showname+'</a>';
@@ -264,7 +279,18 @@
                             //不是文件夹的时候增加重命名功能
                             actions.push('<a class="btn btn-info btn-xs ' + RenameFlag + '" href="javascript:void(0)" onclick="renameFile(\''+row.name+'\')"><i class="fa fa fa-pencil"></i>重命名</a> ');
                         }
+                        actions.push('<a class="btn badge-warning btn-xs ' + publishOperationLogFlag + '" href="javascript:void(0)" onclick="operationLog(\'' + row.path + '\',\''+row.name+'\','+row.folderFlag+')"><i class="fa fa-list"></i>操作日志</a> ');
+
                         actions.push('<a class="btn btn-danger btn-xs ' + removeFlag + '" href="javascript:void(0)" onclick="delFile(\'' + row.path + '\',\''+row.name+'\')"><i class="fa fa-trash-o"></i>删除</a> ');
+
+                        //文件类型的 后缀 js css html txt xml 可以编辑
+                        var editflag = fileType != null && ("js" == fileType.toLowerCase() || "css" == fileType.toLowerCase()
+                            || "html" == fileType.toLowerCase() || "txt" == fileType.toLowerCase() || "xml" == fileType.toLowerCase()
+                            || "shtml" == fileType.toLowerCase());
+						//备份目录的文件不能在线编辑
+						if (editflag && row.path.indexOf("ei_bak") < 0) {
+							actions.push('<a class="btn badge-primary btn-xs ' + codeonlineFlag + '" href="javascript:void(0)" onclick="codeonline(\'' + row.name + '\')"><i class="fa fa-list"></i>在线编辑</a> ');
+						}
 
 					//20220330增加卡片试图相关数据写入
 					//	自适应重写数据的时候如果是第一行数据将预览视图清空
@@ -293,6 +319,12 @@
                         if (imgFlag) {
                             customViewHtml += "<li><a href=\"javascript:void(0)\" onclick=\"viewImage('" + row.path + "')\">预览</a>";
                             customViewHtml += "</li>";
+						}
+
+						//文件类型的 后缀 js css html txt xml 可以编辑 备份目录的文件不能在线编辑
+						if (editflag && row.path.indexOf("ei_bak") < 0) {
+							customViewHtml += "<li><a class="+codeonlineFlag+" href=\"javascript:void(0)\" onclick=\"codeonline('" + row.name + "')\">在线编辑</a>";
+							customViewHtml += "</li>";
 						}
                         customViewHtml += "</ul>";
                         customViewHtml += "</div>";
@@ -346,6 +378,15 @@
 		    };
 		    $.table.init(options);
 		}
+
+		//在线编辑
+		function codeonline(name){
+			var path = $("#path").val();
+			var platform = $("#platform").val();
+			var url = cosPrefix + "/codeOnline?path="+path+"&name="+name+"&platform="+platform;
+			$.modal.openTab('在线编辑',url);
+		}
+
 
 		//请求数据监听事件，清空预览视图
         function responseHandler(res){
@@ -457,8 +498,10 @@
 						}else {
                             $.modal.alertWarning("无数据");
 						}
-
                     }
+                    //20230110增加选中背景
+                    removeSelectTreeClass();
+                    $("#"+treeNode.tId+ "_a").addClass("curSelectedNode");
                 }
             });
         //  完成之后调用方法重写顶部面包屑
@@ -507,6 +550,9 @@
                             $.modal.alertWarning("无数据");
                         }
                     }
+                    //20230110增加选中背景
+                    removeSelectTreeClass();
+                    $("#"+treeNode.tId+ "_a").addClass("curSelectedNode");
                 }
             });
             //  完成之后调用方法重写顶部面包屑
@@ -515,8 +561,12 @@
 
         //树左边减号点击事件
         function myTreeOnCollapse(event, treeId, treeNode) {
+            var treeObj = $.fn.zTree.getZTreeObj("tree");
             //获取当前选中的nodes
             var path = treeNode.path;
+            //20230110增加选中背景
+            removeSelectTreeClass();
+            $("#"+treeNode.tId+ "_a").addClass("curSelectedNode");
             //放置查询参数
             $("#path").val(path);
             //  完成之后调用方法重写顶部面包屑
@@ -534,13 +584,14 @@
         function webUpload(){
 
             layer.open({
+                skin: 'demo-class',
                 type: 2,
                 area: [ '1000px', ($(window).height() - 50)+"px"],
                 fix: false,
                 //不固定
                 maxmin: true,
-                shade: 0.3,
-                title: "文件上传",
+                shade: 0,
+                title: "文件上传-"+$("#path").val(),
                 content: ctx + "project/webUpload?platform="+$('#platform').val()+"&path="+encodeURIComponent(encodeURIComponent($("#path").val())),
                 btn: ['确定', '关闭'],
                 // 弹层外区域关闭
@@ -749,6 +800,9 @@
                         }
 
                     }
+                    //20230110增加选中背景
+                    removeSelectTreeClass();
+                    $("#"+getNode.tId+ "_a").addClass("curSelectedNode");
                 }
             });
         }
@@ -1074,9 +1128,65 @@
                             $.modal.alertWarning("无数据");
                         }
                     }
+                    //20230110增加背景色
+                    removeSelectTreeClass();
+                    $("#"+getNode.tId+ "_a").addClass("curSelectedNode");
                 }
             });
         }
+
+
+        //查看操作日志记录
+        function  operationLog(path,name,folderFlag){
+            var url = "";
+            if(folderFlag){
+                url = ctx + "project/publishOperationLog?path="+path;
+            }else {
+                url = ctx + "project/publishOperationLog?path="+$("#path").val()+"&fileName="+name;
+			}
+            $.modal.openTab('操作记录',url);
+        }
+
+        function removeSelectTreeClass(){
+            $(".curSelectedNode").each(
+                function(){
+                    $(this).removeClass("curSelectedNode");
+                });
+        }
+
+        //点击打开上传拖拽页面
+        function newWebUpload(){
+
+            layer.open({
+                skin: 'demo-class',
+                type: 2,
+                area: [ '1000px', ($(window).height() - 50)+"px"],
+                fix: false,
+                //不固定
+                maxmin: true,
+                shade: 0,
+                title: "文件上传-"+$("#path").val(),
+                content: ctx + "project/webUpload/newWebUpload?platform="+$('#platform').val()+"&path="+encodeURIComponent(encodeURIComponent($("#path").val())),
+                btn: ['确定', '关闭'],
+                // 弹层外区域关闭
+                shadeClose: false,
+                btn1: function(index, layero) {
+                    var iframeWin = layero.find('iframe')[0];
+                    iframeWin.contentWindow.submitHandler();
+                },
+                btn2: function(index, layero) {
+                    var iframeWin = layero.find('iframe')[0];
+                    iframeWin.contentWindow.closeHandler();
+                    return false;
+                },
+                cancel: function(index, layero) {
+                    var iframeWin = layero.find('iframe')[0];
+                    iframeWin.contentWindow.closeHandler();
+                    return false;
+                },
+            });
+        }
+
 
 	</script>
 </body>

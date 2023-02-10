@@ -61,9 +61,10 @@ public interface IPublishOperationLogService
 	 * @param logName
 	 * @param path
 	 * @param fileName
+	 * @param fileVersionId
 	 * @return
 	 */
-	public int commonSaveOperationLog(int platform, int operationType, Long jobId, Long detailId, String logName, String path, String fileName);
+	public int commonSaveOperationLog(int platform,int operationType,Long jobId,Long detailId,String logName,String path,String fileName ,Long fileVersionId);
 
 
 	/**
