@@ -2,7 +2,7 @@
 <!DOCTYPE mapper
 PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.code.filemanageweb.publishfileversion.mapper.PublishFileVersionMapper">
+<mapper namespace="com.huadongfeng.project.filemanageweb.publishfileversion.mapper.PublishFileVersionMapper">
     
     <resultMap type="PublishFileVersion" id="PublishFileVersionResult">
         <result property="id"    column="id"    />

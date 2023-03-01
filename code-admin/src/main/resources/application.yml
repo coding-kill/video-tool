@@ -1,7 +1,7 @@
 # 项目相关配置
 ruoyi:
   # 名称
-  name: code
+  name: huadongfeng
   # 版本
   version: 1.0.0
   # 版权年份
@@ -9,7 +9,7 @@ ruoyi:
   # 实例演示开关
   demoEnabled: true
   # 文件路径 示例（ Windows配置D:/ruoyi/uploadPath，Linux配置 /home/ruoyi/uploadPath）
-  profile: D:/code/uploadPath
+  profile: D:/huadongfeng/uploadPath
   # 获取ip地址开关
   addressEnabled: false
 
@@ -76,7 +76,7 @@ spring:
 # MyBatis
 mybatis:
     # 搜索指定包别名
-    typeAliasesPackage: com.code.**.domain,com.ruoyi
+    typeAliasesPackage: com.huadongfeng.**.domain,com.ruoyi
     # 配置mapper的扫描，找到所有的mapper.xml映射文件
     mapperLocations: classpath*:mybatis/**/*Mapper.xml
     # 加载全局的配置文件
@@ -154,8 +154,18 @@ gen:
   # 作者
   author: ruoyi
   # 默认生成包路径 system 需改成自己的模块名称 如 system monitor tool
-  packageName: com.code.template
+  packageName: com.huadongfeng.template
   # 自动去除表前缀，默认是false
   autoRemovePre: false
   # 表前缀（生成类名不会包含表前缀，多个用逗号分隔）
   tablePrefix: sys_
+
+# 证书相关
+license:
+  flag: true
+#  subject: huadongfeng_common
+  subject: huadongfeng
+  publicAlias: publiccert
+  storePass: public_123456
+  licensePath: license.lic
+  publicKeysStorePath: publicCerts.store
